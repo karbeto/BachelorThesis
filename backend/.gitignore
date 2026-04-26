@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+
+# VS Code settings
+.vscode/
+
+# macOS / Linux / Windows junk
+.DS_Store
+Thumbs.db
+
+# Python environment files
+.env
+
+# Pytest / coverage
+.cache/
+.pytest_cache/
+coverage.*
+htmlcov/
+.tox/
+
+# Logs
+*.log
+
+# Build / dist folders
+build/
+dist/
+*.egg-info/
+
+# MyPy / Pylint / Ruff
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+
+# SQLite DBs or local DB files
+*.sqlite3
+*.db
