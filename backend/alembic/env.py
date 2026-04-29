@@ -1,13 +1,13 @@
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
-# from app.models import (
-#     User, City, Municipality, MunicipalityEmployee,
-#     Category, MunicipalityCategoryRouting,
-#     Report, ReportImage, ReportStatusHistory,
-#     ReportVote, ReportRating,
-#     Idea, IdeaVote, Notification
-# )
+from app.models import (  # noqa: F401
+    User, City, Municipality, MunicipalityEmployee,
+    Category, MunicipalityCategoryRouting,
+    Report, ReportImage, ReportStatusHistory,
+    ReportVote, ReportRating,
+    Idea, IdeaVote, Notification
+)
 from app.database import Base
 from app.config import settings
 
@@ -39,8 +39,8 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     connectable = engine_from_config(
-        config.get_main_option("sqlalchemy.url"),
-        prefix="",
+        {"sqlalchemy.url": config.get_main_option("sqlalchemy.url")},
+        prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:

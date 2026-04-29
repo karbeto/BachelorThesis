@@ -33,7 +33,7 @@ class Idea(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
     location = Column(
-        Geometry(geometry_type="POINT", srid=4326),
+        Geometry(geometry_type="POINT", srid=4326, spatial_index=False),
         nullable=True,
     )
     status = Column(
