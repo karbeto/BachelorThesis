@@ -13,3 +13,4 @@ python-multipart
 geoalchemy2
 email-validator
 shapely
+httpx
