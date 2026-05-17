@@ -13,8 +13,8 @@ export function useLoginLogic(navigation: any) {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  const email = useFormField('', validateEmail)
-  const password = useFormField('', validatePassword)
+  const email = useFormField<string>('', validateEmail)
+  const password = useFormField<string>('', validatePassword)
 
   const handleLogin = async () => {
     const emailValid = email.validateField()
