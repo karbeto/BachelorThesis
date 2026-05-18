@@ -1,8 +1,8 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import MainTabs from '../MainTabs'
 import SubmitReportScreen from '../../screens/Report/SubmitReport/SubmitReportScreen'
-import ReportDetailScreen from '../../screens/Report/ReportDetailScreen'
-import SubmitIdeaScreen from '../../screens/Ideas/SubmitIdeaScreen'
+import ReportDetailScreen from '../../screens/Report/ReportDetail/ReportDetailScreen'
+import SubmitIdeaScreen from '../../screens/Ideas/SubmitIdea/SubmitIdeaScreen'
 import { useTheme } from '../../context/ThemeContext'
 
 const Stack = createNativeStackNavigator()

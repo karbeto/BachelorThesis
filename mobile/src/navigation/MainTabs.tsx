@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext'
 
 import MapScreen from '../screens/Map/MapScreen'
 import MyReportsScreen from '../screens/MyReports/MyReportsScreen'
-import IdeasScreen from '../screens/Ideas/IdeasScreen'
+import IdeasScreen from '../screens/Ideas/Idea/IdeasScreen'
 import NotificationsScreen from '../screens/Notifications/NotificationsScreen'
 import ProfileScreen from '../screens/Profile/ProfileScreen'
 
