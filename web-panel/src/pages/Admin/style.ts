@@ -26,6 +26,15 @@ export const styles: Record<string, CSSProperties> = {
     color: '#94A3B8',
     marginTop: 4,
   },
+  roleBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 14px',
+    borderRadius: 20,
+    fontSize: 12,
+    fontWeight: 600,
+  },
   tabs: {
     display: 'flex',
     gap: 4,
@@ -67,6 +76,11 @@ export const styles: Record<string, CSSProperties> = {
     fontSize: 15,
     fontWeight: 600,
     color: '#0F172A',
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
   },
   addBtn: {
     height: 38,
@@ -130,6 +144,18 @@ export const styles: Record<string, CSSProperties> = {
     justifyContent: 'center',
     transition: 'all 0.15s',
     marginLeft: 6,
+  },
+  readOnlyNote: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '10px 14px',
+    background: '#F0F9FF',
+    borderRadius: 10,
+    border: '1px solid #BAE6FD',
+    fontSize: 13,
+    color: '#0369A1',
+    marginBottom: 16,
   },
   emptyState: {
     textAlign: 'center' as const,

@@ -12,9 +12,11 @@ import {
   updateRouting,
   deleteRouting,
 } from '../../api/routing'
+import client from '../../api/client'
 import toast from 'react-hot-toast'
+import useAuthStore from '../../store/authStore'
 
-export type AdminTab = 'categories' | 'routing'
+export type AdminTab = 'categories' | 'routing' | 'cities' | 'municipalities'
 
 export interface CategoryForm {
   name: string
@@ -28,22 +30,23 @@ export interface RoutingForm {
   department_name: string
 }
 
-export function useAdminLogic() {
+export interface CityForm {
+  name: string
+  country: string
+}
+
+export interface MunicipalityForm {
+  name: string
+  city_id: string
+}
+
+// ── Shared Routing Logic ─────────────────────────────────────────────────────
+
+export function useRoutingLogic(municipalityId?: number) {
   const queryClient = useQueryClient()
 
-  const [activeTab, setActiveTab] = useState<AdminTab>('categories')
-
-  // Category state
-  const [categoryForm, setCategoryForm] = useState<CategoryForm>({
-    name: '',
-    description: '',
-  })
-  const [editingCategory, setEditingCategory] = useState<any>(null)
-  const [categoryModalOpen, setCategoryModalOpen] = useState(false)
-
-  // Routing state
   const [routingForm, setRoutingForm] = useState<RoutingForm>({
-    municipality_id: '',
+    municipality_id: municipalityId ? String(municipalityId) : '',
     category_id: '',
     routing_email: '',
     department_name: '',
@@ -51,16 +54,225 @@ export function useAdminLogic() {
   const [editingRouting, setEditingRouting] = useState<any>(null)
   const [routingModalOpen, setRoutingModalOpen] = useState(false)
 
-  // Queries
+  const { data: routings, isLoading: routingsLoading } = useQuery({
+    queryKey: ['routings', municipalityId],
+    queryFn: () =>
+      getRoutings(municipalityId ? { municipality_id: municipalityId } : {}),
+  })
+
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: createRouting,
+    onSuccess: () => {
+      toast.success('Рутирањето е додадено')
+      queryClient.invalidateQueries({ queryKey: ['routings'] })
+      closeRoutingModal()
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.detail || 'Грешка при додавање')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: any }) =>
+      updateRouting(id, payload),
+    onSuccess: () => {
+      toast.success('Рутирањето е ажурирано')
+      queryClient.invalidateQueries({ queryKey: ['routings'] })
+      closeRoutingModal()
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.detail || 'Грешка при ажурирање')
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteRouting,
+    onSuccess: () => {
+      toast.success('Рутирањето е избришано')
+      queryClient.invalidateQueries({ queryKey: ['routings'] })
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.detail || 'Грешка при бришење')
+    },
+  })
+
+  const openCreateRouting = () => {
+    setEditingRouting(null)
+    setRoutingForm({
+      municipality_id: municipalityId ? String(municipalityId) : '',
+      category_id: '',
+      routing_email: '',
+      department_name: '',
+    })
+    setRoutingModalOpen(true)
+  }
+
+  const openEditRouting = (routing: any) => {
+    setEditingRouting(routing)
+    setRoutingForm({
+      municipality_id: String(routing.municipality_id),
+      category_id: String(routing.category_id),
+      routing_email: routing.routing_email,
+      department_name: routing.department_name || '',
+    })
+    setRoutingModalOpen(true)
+  }
+
+  const closeRoutingModal = () => {
+    setRoutingModalOpen(false)
+    setEditingRouting(null)
+    setRoutingForm({
+      municipality_id: municipalityId ? String(municipalityId) : '',
+      category_id: '',
+      routing_email: '',
+      department_name: '',
+    })
+  }
+
+  const handleRoutingSubmit = () => {
+    if (!routingForm.routing_email) {
+      toast.error('Внесете email адреса')
+      return
+    }
+    if (editingRouting) {
+      updateMutation.mutate({
+        id: editingRouting.id,
+        payload: {
+          routing_email: routingForm.routing_email,
+          department_name: routingForm.department_name || null,
+        },
+      })
+    } else {
+      if (!routingForm.municipality_id || !routingForm.category_id) {
+        toast.error('Пополнете ги сите задолжителни полиња')
+        return
+      }
+      createMutation.mutate({
+        municipality_id: Number(routingForm.municipality_id),
+        category_id: Number(routingForm.category_id),
+        routing_email: routingForm.routing_email,
+        department_name: routingForm.department_name || null,
+      })
+    }
+  }
+
+  const handleDeleteRouting = (id: number) => {
+    if (confirm('Дали сте сигурни?')) {
+      deleteMutation.mutate(id)
+    }
+  }
+
+  return {
+    routings,
+    routingsLoading,
+    routingForm,
+    setRoutingForm,
+    editingRouting,
+    routingModalOpen,
+    categories,
+    openCreateRouting,
+    openEditRouting,
+    closeRoutingModal,
+    handleRoutingSubmit,
+    handleDeleteRouting,
+    isRoutingSubmitting: createMutation.isPending || updateMutation.isPending,
+  }
+}
+
+// ── Municipality Admin Logic ─────────────────────────────────────────────────
+
+export function useMunicipalityAdminLogic() {
+  const [activeTab, setActiveTab] = useState<'categories' | 'routing'>(
+    'categories',
+  )
+
+  const { data: categories, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+  })
+
+  const { data: myEmployee } = useQuery({
+    queryKey: ['my-employee'],
+    queryFn: async () => {
+      const { data } = await client.get('/dashboard/stats')
+      return data
+    },
+  })
+
+  const { data: municipalities } = useQuery({
+    queryKey: ['municipalities'],
+    queryFn: async () => {
+      const { data } = await client.get('/municipalities')
+      return data
+    },
+  })
+
+  const municipalityId: number | undefined = municipalities?.[0]?.id
+
+  const routingLogic = useRoutingLogic(municipalityId)
+
+  return {
+    activeTab,
+    setActiveTab,
+    categoriesLoading,
+    municipalityId,
+    municipalities,
+    ...routingLogic,
+  }
+}
+
+// ── Superadmin Logic ─────────────────────────────────────────────────────────
+
+export function useSuperAdminLogic() {
+  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<AdminTab>('categories')
+
+  const [categoryForm, setCategoryForm] = useState<CategoryForm>({
+    name: '',
+    description: '',
+  })
+  const [editingCategory, setEditingCategory] = useState<any>(null)
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false)
+
+  const [cityForm, setCityForm] = useState<CityForm>({
+    name: '',
+    country: 'Macedonia',
+  })
+  const [cityModalOpen, setCityModalOpen] = useState(false)
+
+  const [municipalityForm, setMunicipalityForm] = useState<MunicipalityForm>({
+    name: '',
+    city_id: '',
+  })
+  const [municipalityModalOpen, setMunicipalityModalOpen] = useState(false)
+
   const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories-all'],
     queryFn: getCategories,
   })
 
-  const { data: routings, isLoading: routingsLoading } = useQuery({
-    queryKey: ['routings'],
-    queryFn: () => getRoutings({}),
+  const { data: cities, isLoading: citiesLoading } = useQuery({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const { data } = await client.get('/cities')
+      return data
+    },
   })
+
+  const { data: municipalities, isLoading: municipalitiesLoading } = useQuery({
+    queryKey: ['municipalities-all'],
+    queryFn: async () => {
+      const { data } = await client.get('/municipalities')
+      return data
+    },
+  })
+
+  const routingLogic = useRoutingLogic()
 
   // Category mutations
   const createCategoryMutation = useMutation({
@@ -102,44 +314,64 @@ export function useAdminLogic() {
     },
   })
 
-  // Routing mutations
-  const createRoutingMutation = useMutation({
-    mutationFn: createRouting,
+  const createCityMutation = useMutation({
+    mutationFn: async (payload: CityForm) => {
+      const { data } = await client.post('/cities', payload)
+      return data
+    },
     onSuccess: () => {
-      toast.success('Рутирањето е додадено')
-      queryClient.invalidateQueries({ queryKey: ['routings'] })
-      closeRoutingModal()
+      toast.success('Градот е додаден')
+      queryClient.invalidateQueries({ queryKey: ['cities'] })
+      setCityModalOpen(false)
+      setCityForm({ name: '', country: 'Macedonia' })
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.detail || 'Грешка при додавање')
     },
   })
 
-  const updateRoutingMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: any }) =>
-      updateRouting(id, payload),
-    onSuccess: () => {
-      toast.success('Рутирањето е ажурирано')
-      queryClient.invalidateQueries({ queryKey: ['routings'] })
-      closeRoutingModal()
+  const deleteCityMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await client.delete(`/cities/${id}`)
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Грешка при ажурирање')
-    },
-  })
-
-  const deleteRoutingMutation = useMutation({
-    mutationFn: deleteRouting,
     onSuccess: () => {
-      toast.success('Рутирањето е избришано')
-      queryClient.invalidateQueries({ queryKey: ['routings'] })
+      toast.success('Градот е избришан')
+      queryClient.invalidateQueries({ queryKey: ['cities'] })
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.detail || 'Грешка при бришење')
     },
   })
 
-  // Category handlers
+  const createMunicipalityMutation = useMutation({
+    mutationFn: async (payload: { name: string; city_id: number }) => {
+      const { data } = await client.post('/municipalities', payload)
+      return data
+    },
+    onSuccess: () => {
+      toast.success('Општина е додадена')
+      queryClient.invalidateQueries({ queryKey: ['municipalities-all'] })
+      setMunicipalityModalOpen(false)
+      setMunicipalityForm({ name: '', city_id: '' })
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.detail || 'Грешка при додавање')
+    },
+  })
+
+  const deleteMunicipalityMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await client.delete(`/municipalities/${id}`)
+    },
+    onSuccess: () => {
+      toast.success('Општина е избришана')
+      queryClient.invalidateQueries({ queryKey: ['municipalities-all'] })
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.detail || 'Грешка при бришење')
+    },
+  })
+
   const openCreateCategory = () => {
     setEditingCategory(null)
     setCategoryForm({ name: '', description: '' })
@@ -160,7 +392,7 @@ export function useAdminLogic() {
 
   const handleCategorySubmit = () => {
     if (!categoryForm.name.trim()) {
-      toast.error('Внесете име на категорија')
+      toast.error('Внесете ime на категорија')
       return
     }
     if (editingCategory) {
@@ -185,73 +417,6 @@ export function useAdminLogic() {
     }
   }
 
-  // Routing handlers
-  const openCreateRouting = () => {
-    setEditingRouting(null)
-    setRoutingForm({
-      municipality_id: '',
-      category_id: '',
-      routing_email: '',
-      department_name: '',
-    })
-    setRoutingModalOpen(true)
-  }
-
-  const openEditRouting = (routing: any) => {
-    setEditingRouting(routing)
-    setRoutingForm({
-      municipality_id: String(routing.municipality_id),
-      category_id: String(routing.category_id),
-      routing_email: routing.routing_email,
-      department_name: routing.department_name || '',
-    })
-    setRoutingModalOpen(true)
-  }
-
-  const closeRoutingModal = () => {
-    setRoutingModalOpen(false)
-    setEditingRouting(null)
-    setRoutingForm({
-      municipality_id: '',
-      category_id: '',
-      routing_email: '',
-      department_name: '',
-    })
-  }
-
-  const handleRoutingSubmit = () => {
-    if (
-      !routingForm.municipality_id ||
-      !routingForm.category_id ||
-      !routingForm.routing_email
-    ) {
-      toast.error('Пополнете ги сите задолжителни полиња')
-      return
-    }
-    if (editingRouting) {
-      updateRoutingMutation.mutate({
-        id: editingRouting.id,
-        payload: {
-          routing_email: routingForm.routing_email,
-          department_name: routingForm.department_name || null,
-        },
-      })
-    } else {
-      createRoutingMutation.mutate({
-        municipality_id: Number(routingForm.municipality_id),
-        category_id: Number(routingForm.category_id),
-        routing_email: routingForm.routing_email,
-        department_name: routingForm.department_name || null,
-      })
-    }
-  }
-
-  const handleDeleteRouting = (id: number) => {
-    if (confirm('Дали сте сигурни дека сакате да го избришете ова рутирање?')) {
-      deleteRoutingMutation.mutate(id)
-    }
-  }
-
   const toggleCategoryActive = (cat: any) => {
     updateCategoryMutation.mutate({
       id: cat.id,
@@ -262,8 +427,6 @@ export function useAdminLogic() {
   return {
     activeTab,
     setActiveTab,
-    // categories
-    categories,
     categoriesLoading,
     categoryForm,
     setCategoryForm,
@@ -277,19 +440,47 @@ export function useAdminLogic() {
     toggleCategoryActive,
     isCategorySubmitting:
       createCategoryMutation.isPending || updateCategoryMutation.isPending,
-    // routing
-    routings,
-    routingsLoading,
-    routingForm,
-    setRoutingForm,
-    editingRouting,
-    routingModalOpen,
-    openCreateRouting,
-    openEditRouting,
-    closeRoutingModal,
-    handleRoutingSubmit,
-    handleDeleteRouting,
-    isRoutingSubmitting:
-      createRoutingMutation.isPending || updateRoutingMutation.isPending,
+    cities,
+    citiesLoading,
+    cityForm,
+    setCityForm,
+    cityModalOpen,
+    setCityModalOpen,
+    handleCreateCity: () => {
+      if (!cityForm.name.trim()) {
+        toast.error('Внесете ime на град')
+        return
+      }
+      createCityMutation.mutate(cityForm)
+    },
+    handleDeleteCity: (id: number) => {
+      if (confirm('Дали сте сигурни дека сакате да го избришете овој град?')) {
+        deleteCityMutation.mutate(id)
+      }
+    },
+    isCitySubmitting: createCityMutation.isPending,
+    municipalities,
+    municipalitiesLoading,
+    municipalityForm,
+    setMunicipalityForm,
+    municipalityModalOpen,
+    setMunicipalityModalOpen,
+    handleCreateMunicipality: () => {
+      if (!municipalityForm.name.trim() || !municipalityForm.city_id) {
+        toast.error('Пополнете ги сите полиња')
+        return
+      }
+      createMunicipalityMutation.mutate({
+        name: municipalityForm.name,
+        city_id: Number(municipalityForm.city_id),
+      })
+    },
+    handleDeleteMunicipality: (id: number) => {
+      if (confirm('Дали сте сигурни дека сакате да ја избришете оваа општина?')) {
+        deleteMunicipalityMutation.mutate(id)
+      }
+    },
+    isMunicipalitySubmitting: createMunicipalityMutation.isPending,
+    ...routingLogic,
   }
 }
