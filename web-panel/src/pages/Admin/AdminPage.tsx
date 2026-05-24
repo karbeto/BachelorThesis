@@ -14,6 +14,7 @@ function RoutingModal({
   onSubmit,
   isSubmitting,
   categories,
+  municipalities,
   isMunicipalityAdmin = false,
 }: any) {
   if (!open) return null
@@ -26,16 +27,19 @@ function RoutingModal({
 
         {!editingRouting && !isMunicipalityAdmin && (
           <div style={styles.fieldWrap}>
-            <label style={styles.label}>Општина ID *</label>
-            <input
-              style={styles.input}
-              type="number"
-              placeholder="пр. 1"
+            <label style={styles.label}>Општина *</label>
+            <select
+              style={styles.select}
               value={routingForm.municipality_id}
               onChange={(e) =>
                 setRoutingForm((p: any) => ({ ...p, municipality_id: e.target.value }))
               }
-            />
+            >
+              <option value="">Изберете општина</option>
+              {municipalities?.map((m: any) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -102,7 +106,7 @@ function RoutingModal({
 
 // ── Shared: Routing Table ────────────────────────────────────────────────────
 
-function RoutingTable({ routings, routingsLoading, onEdit, onDelete, onAdd, readOnlyMunicipalityId }: any) {
+function RoutingTable({ routings, routingsLoading, onEdit, onDelete, onAdd, readOnlyMunicipalityId, getMunicipalityName, getCategoryName }: any) {
   return (
     <div>
       <div style={styles.sectionHeader}>
@@ -142,8 +146,8 @@ function RoutingTable({ routings, routingsLoading, onEdit, onDelete, onAdd, read
                 <td style={{ ...styles.td, color: '#94A3B8', fontFamily: 'monospace', fontSize: 12 }}>
                   #{r.id}
                 </td>
-                <td style={styles.td}>#{r.municipality_id}</td>
-                <td style={styles.td}>#{r.category_id}</td>
+                <td style={styles.td}>{getMunicipalityName(r.municipality_id)}</td>
+                <td style={styles.td}>{getCategoryName(r.category_id)}</td>
                 <td style={{ ...styles.td, color: '#6366F1' }}>{r.routing_email}</td>
                 <td style={{ ...styles.td, color: '#64748B' }}>{r.department_name || '—'}</td>
                 <td style={styles.td}>
@@ -186,7 +190,9 @@ function MunicipalityAdminView() {
     setRoutingForm,
     editingRouting,
     routingModalOpen,
-    categories: routingCategories,
+    municipalities,
+    getMunicipalityName,
+    getCategoryName,
     openCreateRouting,
     openEditRouting,
     closeRoutingModal,
@@ -299,6 +305,8 @@ function MunicipalityAdminView() {
           onDelete={handleDeleteRouting}
           onAdd={openCreateRouting}
           readOnlyMunicipalityId={municipalityId}
+          getMunicipalityName={getMunicipalityName}
+          getCategoryName={getCategoryName}
         />
       )}
 
@@ -310,7 +318,8 @@ function MunicipalityAdminView() {
         setRoutingForm={setRoutingForm}
         onSubmit={handleRoutingSubmit}
         isSubmitting={isRoutingSubmitting}
-        categories={routingCategories}
+        categories={categories}
+        municipalities={municipalities}
         isMunicipalityAdmin={true}
       />
     </div>
@@ -340,6 +349,8 @@ function SuperAdminView() {
     routingForm, setRoutingForm,
     editingRouting, routingModalOpen,
     categories: routingCategories,
+    municipalities: routingMunicipalities,
+    getMunicipalityName, getCategoryName,
     openCreateRouting, openEditRouting, closeRoutingModal,
     handleRoutingSubmit, handleDeleteRouting, isRoutingSubmitting,
   } = useSuperAdminLogic()
@@ -498,6 +509,8 @@ function SuperAdminView() {
           onEdit={openEditRouting}
           onDelete={handleDeleteRouting}
           onAdd={openCreateRouting}
+          getMunicipalityName={getMunicipalityName}
+          getCategoryName={getCategoryName}
         />
       )}
 
@@ -642,6 +655,7 @@ function SuperAdminView() {
         onSubmit={handleRoutingSubmit}
         isSubmitting={isRoutingSubmitting}
         categories={routingCategories}
+        municipalities={routingMunicipalities}
         isMunicipalityAdmin={false}
       />
     </div>

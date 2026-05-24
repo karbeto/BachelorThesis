@@ -7,7 +7,7 @@ from app.models.municipality_category_routing import (
 from app.models.municipality import Municipality
 from app.models.category import Category
 from app.schemas.routing import RoutingCreate, RoutingUpdate, RoutingResponse
-from app.core.dependencies import get_current_superadmin
+from app.core.dependencies import get_current_superadmin, get_current_admin
 
 router = APIRouter(prefix="/routing", tags=["Routing"])
 
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/routing", tags=["Routing"])
 async def create_routing(
     payload: RoutingCreate,
     db: AsyncSession = Depends(get_db),
-    _: object = Depends(get_current_superadmin),
+    _: object = Depends(get_current_admin),
 ):
     municipality = await db.execute(
         select(Municipality).where(Municipality.id == payload.municipality_id)

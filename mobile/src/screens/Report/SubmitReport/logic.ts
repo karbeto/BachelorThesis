@@ -3,7 +3,6 @@ import { Alert } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getCategories } from '../../../api/categories'
 import { submitReport } from '../../../api/reports'
 import { useFormField } from '../../../utils/formHooks'
 import { useNavigation } from '@react-navigation/native'
@@ -25,17 +24,11 @@ export function useSubmitReportLogic() {
     longitude: number
   } | null>(null)
   const [address, setAddress] = useState<string>('')
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
-const [municipalityId, setMunicipalityId] = useState<number>(1)
+  const [municipalityId] = useState<number>(1) // default Veles
   const [locating, setLocating] = useState(false)
 
   const title = useFormField<string>('', validateTitle)
   const description = useFormField<string>('')
-
-  const { data: categories } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getCategories,
-  })
 
   // Auto-get location when entering location step
   useEffect(() => {
@@ -139,8 +132,6 @@ const [municipalityId, setMunicipalityId] = useState<number>(1)
       formData.append('longitude', String(location!.longitude))
       formData.append('municipality_id', String(municipalityId))
       if (address) formData.append('address', address)
-      if (selectedCategory)
-        formData.append('category_id', String(selectedCategory))
 
       if (image) {
         const uri = image.uri
@@ -183,9 +174,6 @@ const [municipalityId, setMunicipalityId] = useState<number>(1)
     location,
     address,
     locating,
-    categories,
-    selectedCategory,
-    setSelectedCategory,
     title,
     description,
     pickFromCamera,

@@ -12,7 +12,8 @@ from app.routers import (auth,
                          ratings,
                          notifications,
                          dashboard,
-                         reports)
+                         reports,
+                         routing)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -42,6 +43,7 @@ app.include_router(ratings.router)
 app.include_router(notifications.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
+app.include_router(routing.router)
 
 
 @app.get("/")

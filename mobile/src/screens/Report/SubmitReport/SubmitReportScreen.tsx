@@ -80,9 +80,6 @@ export default function SubmitReportScreen() {
     location,
     address,
     locating,
-    categories,
-    selectedCategory,
-    setSelectedCategory,
     title,
     description,
     pickFromCamera,
@@ -321,33 +318,24 @@ export default function SubmitReportScreen() {
               </View>
             </View>
 
-            {/* Category */}
-            <View style={styles.fieldWrap}>
-              <Text style={styles.label}>Категорија (опционално)</Text>
-              <View style={styles.categoryGrid}>
-                {categories?.map((cat: any) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryChip,
-                      selectedCategory === cat.id && styles.categoryChipActive,
-                    ]}
-                    onPress={() =>
-                      setSelectedCategory(
-                        selectedCategory === cat.id ? null : cat.id,
-                      )
-                    }
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.categoryChipText,
-                      selectedCategory === cat.id && styles.categoryChipTextActive,
-                    ]}>
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            {/* AI Classification Note */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 10,
+              padding: 12,
+              backgroundColor: theme.colors.accent + '15',
+              borderRadius: theme.borderRadius.medium,
+            }}>
+              <Ionicons name="sparkles" size={16} color={theme.colors.accent} style={{ marginTop: 1 }} />
+              <Text style={{
+                ...theme.typography.small,
+                color: theme.colors.text,
+                flex: 1,
+                lineHeight: 18,
+              }}>
+                Категоријата ќе биде автоматски одредена од AI врз основа на вашата фотографија и опис.
+              </Text>
             </View>
 
             {/* Submit */}
