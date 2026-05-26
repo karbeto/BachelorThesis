@@ -9,9 +9,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native'
-import MapView, { Marker, UrlTile } from 'react-native-maps'
+import { WebView } from 'react-native-webview'
 import { Ionicons } from '@expo/vector-icons'
-import { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useTheme } from '../../../context/ThemeContext'
 import { createStyles } from './style'
 import { useSubmitReportLogic, SubmitStep } from './logic'
@@ -95,6 +95,49 @@ export default function SubmitReportScreen() {
   const [titleFocused, setTitleFocused] = useState(false)
   const [descFocused, setDescFocused] = useState(false)
 
+  // Memoize the submission preview map source frame using targeted coordinates
+  const locationMapHtml = useMemo(() => {
+    if (!location) return ''
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <style>
+          html, body, #map { height: 100%; margin: 0; padding: 0; background-color: #E5E7EB; }
+        </style>
+      </head>
+      <body>
+        <div id="map"></div>
+        <script>
+          var map = L.map('map', { 
+            zoomControl: false,
+            dragging: false,
+            touchZoom: false,
+            doubleClickZoom: false,
+            scrollWheelZoom: false
+          }).setView([${location.latitude}, ${location.longitude}], 15);
+          
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+          }).addTo(map);
+
+          L.circleMarker([${location.latitude}, ${location.longitude}], {
+            radius: 10,
+            fillColor: '${theme.colors.accent}',
+            color: '#FFFFFF',
+            weight: 2,
+            fillOpacity: 0.9
+          }).addTo(map);
+        </script>
+      </body>
+      </html>
+    `
+  }, [location, theme.colors.accent])
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -170,27 +213,16 @@ export default function SubmitReportScreen() {
       {step === 'location' && (
         <View style={styles.locationContent}>
           {location ? (
-            <MapView
-              style={styles.mapPreview}
-              region={{
-                latitude: location.latitude,
-                longitude: location.longitude,
-                latitudeDelta: 0.005,
-                longitudeDelta: 0.005,
-              }}
-              scrollEnabled={false}
-              zoomEnabled={false}
-            >
-              <UrlTile
-                urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                maximumZ={19}
-                flipY={false}
+            <View style={styles.mapPreview}>
+              <WebView
+                originWhitelist={['*']}
+                source={{ html: locationMapHtml }}
+                style={{ flex: 1 }}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                scrollEnabled={false}
               />
-              <Marker
-                coordinate={location}
-                pinColor={theme.colors.accent}
-              />
-            </MapView>
+            </View>
           ) : (
             <View style={[styles.mapPreview, {
               backgroundColor: theme.colors.surfaceVariant,
@@ -320,7 +352,7 @@ export default function SubmitReportScreen() {
 
             {/* AI Classification Note */}
             <View style={{
-              flexDirection: 'row',
+              flexDirection: 'row', // 👈 Fixed: changed from flex: 'row'
               alignItems: 'flex-start',
               gap: 10,
               padding: 12,

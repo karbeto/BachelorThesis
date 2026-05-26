@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react'
 import {
   View,
   Text,
@@ -8,7 +9,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native'
-import MapView, { Marker, UrlTile } from 'react-native-maps'
+import { WebView } from 'react-native-webview'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../context/ThemeContext'
 import { createStyles } from './style'
@@ -74,6 +75,53 @@ export default function ReportDetailScreen() {
     isRating,
     goBack,
   } = useReportDetailLogic()
+
+  const staticMapHtml = useMemo(() => {
+    if (!report || report.latitude == null || report.longitude == null) return ''
+    
+    const statusStyle = STATUS_COLORS[report.status] || { color: '#94A3B8' }
+    const markerColor = statusStyle.color
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <style>
+          html, body, #map { height: 100%; margin: 0; padding: 0; background-color: #E5E7EB; }
+        </style>
+      </head>
+      <body>
+        <div id="map"></div>
+        <script>
+          // Open cleanly with interaction parameters turned off to mirror a snapshot view container component
+          var map = L.map('map', { 
+            zoomControl: false,
+            dragging: false,
+            touchZoom: false,
+            doubleClickZoom: false,
+            scrollWheelZoom: false
+          }).setView([${report.latitude}, ${report.longitude}], 15);
+          
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+          }).addTo(map);
+
+          L.circleMarker([${report.latitude}, ${report.longitude}], {
+            radius: 10,
+            fillColor: '${markerColor}',
+            color: '#FFFFFF',
+            weight: 2,
+            fillOpacity: 0.9
+          }).addTo(map);
+        </script>
+      </body>
+      </html>
+    `
+  }, [report])
 
   if (isLoading) {
     return (
@@ -176,35 +224,18 @@ export default function ReportDetailScreen() {
           </View>
         )}
 
-        {/* Map */}
         {hasLocation && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Локација</Text>
             <View style={styles.mapWrap}>
-              <MapView
+              <WebView
+                originWhitelist={['*']}
+                source={{ html: staticMapHtml }}
                 style={styles.map}
-                region={{
-                  latitude: report.latitude,
-                  longitude: report.longitude,
-                  latitudeDelta: 0.005,
-                  longitudeDelta: 0.005,
-                }}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
                 scrollEnabled={false}
-                zoomEnabled={false}
-              >
-                <UrlTile
-                  urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  maximumZ={19}
-                  flipY={false}
-                />
-                <Marker
-                  coordinate={{
-                    latitude: report.latitude,
-                    longitude: report.longitude,
-                  }}
-                  pinColor={statusStyle.color}
-                />
-              </MapView>
+              />
             </View>
             {report.address && (
               <View style={styles.addressRow}>
