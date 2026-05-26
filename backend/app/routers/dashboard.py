@@ -7,8 +7,9 @@ from app.models.category import Category
 from app.models.municipality import Municipality
 from app.models.municipality_employee import MunicipalityEmployee
 from app.core.dependencies import get_current_admin
-from app.models.user import User
+from app.models.user import User, UserRole
 from pydantic import BaseModel
+from typing import Optional
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -38,10 +39,17 @@ class DashboardResponse(BaseModel):
     by_category: list[CategoryStatsResponse]
 
 
-async def get_admin_municipality_id(
+async def get_municipality_filter(
     current_user: User,
     db: AsyncSession,
-) :
+) -> Optional[int]:
+    """
+    Returns municipality_id for municipality_admin.
+    Returns None for superadmin (no filter — sees all data).
+    """
+    if current_user.role == UserRole.superadmin:
+        return None
+
     result = await db.execute(
         select(MunicipalityEmployee).where(
             MunicipalityEmployee.user_id == current_user.id
@@ -61,54 +69,51 @@ async def get_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
-    municipality_id = await get_admin_municipality_id(current_user, db)
+    municipality_id = await get_municipality_filter(current_user, db)
 
-    total_result = await db.execute(
-        select(func.count(Report.id)).where(
-            Report.municipality_id == municipality_id
+    def mun_filter(query):
+        if municipality_id is not None:
+            return query.where(Report.municipality_id == municipality_id)
+        return query
+
+    total = (await db.execute(
+        mun_filter(select(func.count(Report.id)))
+    )).scalar() or 0
+
+    submitted = (await db.execute(
+        mun_filter(select(func.count(Report.id))).where(
+            Report.status == ReportStatus.submitted
         )
-    )
-    total = total_result.scalar() or 0
+    )).scalar() or 0
 
-    submitted_result = await db.execute(
-        select(func.count(Report.id)).where(
-            Report.municipality_id == municipality_id,
-            Report.status == ReportStatus.submitted,
+    in_progress = (await db.execute(
+        mun_filter(select(func.count(Report.id))).where(
+            Report.status == ReportStatus.in_progress
         )
-    )
-    submitted = submitted_result.scalar() or 0
+    )).scalar() or 0
 
-    in_progress_result = await db.execute(
-        select(func.count(Report.id)).where(
-            Report.municipality_id == municipality_id,
-            Report.status == ReportStatus.in_progress,
+    resolved = (await db.execute(
+        mun_filter(select(func.count(Report.id))).where(
+            Report.status == ReportStatus.resolved
         )
-    )
-    in_progress = in_progress_result.scalar() or 0
+    )).scalar() or 0
 
-    resolved_result = await db.execute(
-        select(func.count(Report.id)).where(
-            Report.municipality_id == municipality_id,
-            Report.status == ReportStatus.resolved,
+    rejected = (await db.execute(
+        mun_filter(select(func.count(Report.id))).where(
+            Report.status == ReportStatus.rejected
         )
-    )
-    resolved = resolved_result.scalar() or 0
+    )).scalar() or 0
 
-    rejected_result = await db.execute(
-        select(func.count(Report.id)).where(
-            Report.municipality_id == municipality_id,
-            Report.status == ReportStatus.rejected,
-        )
-    )
-    rejected = rejected_result.scalar() or 0
-
-    category_result = await db.execute(
+    cat_query = (
         select(Category.id, Category.name, func.count(Report.id))
         .join(Report, Report.category_id == Category.id)
-        .where(Report.municipality_id == municipality_id)
         .group_by(Category.id, Category.name)
         .order_by(func.count(Report.id).desc())
     )
+    if municipality_id is not None:
+        cat_query = cat_query.where(Report.municipality_id == municipality_id)
+
+    category_result = await db.execute(cat_query)
     by_category = [
         CategoryStatsResponse(
             category_id=row[0],
@@ -136,18 +141,18 @@ async def get_heatmap(
     current_user: User = Depends(get_current_admin),
 ):
     from geoalchemy2.functions import ST_X, ST_Y
-    municipality_id = await get_admin_municipality_id(current_user, db)
+    municipality_id = await get_municipality_filter(current_user, db)
 
-    result = await db.execute(
-        select(
-            Report.id,
-            ST_X(Report.location),
-            ST_Y(Report.location),
-        ).where(
-            Report.municipality_id == municipality_id,
-            Report.location.isnot(None),
-        )
-    )
+    query = select(
+        Report.id,
+        ST_X(Report.location),
+        ST_Y(Report.location),
+    ).where(Report.location.isnot(None))
+
+    if municipality_id is not None:
+        query = query.where(Report.municipality_id == municipality_id)
+
+    result = await db.execute(query)
 
     return [
         HeatmapPoint(
