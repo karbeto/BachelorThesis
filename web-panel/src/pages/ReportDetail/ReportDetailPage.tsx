@@ -8,8 +8,8 @@ import {
   STATUS_OPTIONS,
 } from './logic'
 import { styles } from './style'
+import { BASE_URL } from './../../api/client';
 
-// Fix leaflet default icon
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -169,10 +169,10 @@ export default function ReportDetailPage() {
                 {report.images.map((img: any) => (
                   <img
                     key={img.id}
-                    src={`http://127.0.0.1:8000${img.image_url}`}
+                    src={`${BASE_URL}${img.image_url}`}
                     alt="report"
                     style={styles.imageThumb}
-                    onClick={() => window.open(`http://127.0.0.1:8000${img.image_url}`, '_blank')}
+                    onClick={() => window.open(`${BASE_URL}${img.image_url}`, '_blank')}
                   />
                 ))}
               </div>
