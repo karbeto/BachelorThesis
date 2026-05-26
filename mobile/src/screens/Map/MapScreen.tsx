@@ -1,10 +1,11 @@
+import React, { useMemo } from 'react'
 import {
   View,
   Text,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native'
-import MapView, { Marker, Callout, UrlTile } from 'react-native-maps'
+import { WebView } from 'react-native-webview'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../context/ThemeContext'
 import { createStyles } from './style'
@@ -28,18 +29,10 @@ const LEGEND_ITEMS = [
   { status: 'resolved', label: 'Решено' },
 ]
 
-const DEFAULT_REGION = {
-  latitude: 41.715,
-  longitude: 21.773,
-  latitudeDelta: 0.05,
-  longitudeDelta: 0.05,
-}
-
 export default function MapScreen() {
   const { theme } = useTheme()
   const styles = createStyles(theme)
   const {
-    mapRef,
     reports,
     isLoading,
     selectedReport,
@@ -53,38 +46,82 @@ export default function MapScreen() {
     handleFilterChange,
   } = useMapLogic()
 
+  const mapHtml = useMemo(() => {
+    const markersScript = reports
+      .map((report: any) => {
+        const markerColor = STATUS_COLORS[report.status] || '#94A3B8'
+        return `
+          var marker = L.circleMarker([${report.latitude}, ${report.longitude}], {
+            radius: 10,
+            fillColor: '${markerColor}',
+            color: '#FFFFFF',
+            weight: 2,
+            fillOpacity: 0.9
+          }).addTo(map);
+          
+          marker.on('click', function() {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ id: "${report.id}" }));
+          });
+        `
+      })
+      .join('\n')
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <style>
+          html, body, #map { height: 100%; margin: 0; padding: 0; background-color: #E5E7EB; }
+        </style>
+      </head>
+      <body>
+        <div id="map"></div>
+        <script>
+          // Set initial view focusing on Macedonia regions
+          var map = L.map('map', { zoomControl: false }).setView([41.715, 21.773], 13);
+          
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+          }).addTo(map);
+
+          ${markersScript}
+        </script>
+      </body>
+      </html>
+    `
+  }, [reports])
+
+  const handleMapMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data)
+      if (data && data.id) {
+        const foundReport = reports.find((r: any) => String(r.id) === String(data.id))
+        if (foundReport) {
+          handleMarkerPress(foundReport)
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing map click action data:", e)
+    }
+  }
+
   return (
     <View style={styles.container}>
-      {/* Map */}
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={DEFAULT_REGION}
-        showsUserLocation
-        showsMyLocationButton={false}
-      >
-        {/* OpenStreetMap tiles */}
-        <UrlTile
-          urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maximumZ={19}
-          flipY={false}
+      <View style={styles.map}>
+        <WebView
+          originWhitelist={['*']}
+          source={{ html: mapHtml }}
+          onMessage={handleMapMessage}
+          style={{ flex: 1 }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
         />
+      </View>
 
-        {/* Report markers */}
-        {reports.map((report: any) => (
-          <Marker
-            key={report.id}
-            coordinate={{
-              latitude: report.latitude,
-              longitude: report.longitude,
-            }}
-            onPress={() => handleMarkerPress(report)}
-            pinColor={STATUS_COLORS[report.status] || '#94A3B8'}
-          />
-        ))}
-      </MapView>
-
-      {/* Top bar */}
       <View style={styles.topBar}>
         <View style={styles.titlePill}>
           <Ionicons name="map" size={16} color={theme.colors.accent} />
@@ -114,7 +151,6 @@ export default function MapScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Filter dropdown */}
       {showFilters && (
         <View style={styles.filterDropdown}>
           {FILTER_OPTIONS.map((opt) => (
@@ -154,7 +190,6 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Legend — only when no card shown */}
       {!selectedReport && (
         <View style={styles.legend}>
           {LEGEND_ITEMS.map((item) => (
@@ -169,7 +204,6 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Selected report card */}
       {selectedReport && (
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -223,7 +257,6 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* FAB — submit report */}
       <TouchableOpacity
         style={styles.fab}
         onPress={handleSubmitPress}

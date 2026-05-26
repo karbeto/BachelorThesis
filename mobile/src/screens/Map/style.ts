@@ -10,8 +10,8 @@ export const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     map: {
-      width,
-      height,
+      width: '100%',
+      height: '100%',
     },
 
     topBar: {
