@@ -66,7 +66,7 @@ function RoutingModal({
           <input
             style={styles.input}
             type="email"
-            placeholder="пр. komunalna@veles.gov.mk"
+            placeholder="пр. derven@veles.gov.mk"
             value={routingForm.routing_email}
             onChange={(e) =>
               setRoutingForm((p: any) => ({ ...p, routing_email: e.target.value }))
@@ -263,7 +263,7 @@ function MunicipalityAdminView() {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  {['#', 'Ime', 'Опис', 'Статус'].map((h) => (
+                  {['#', 'Име', 'Опис', 'Статус'].map((h) => (
                     <th key={h} style={styles.th}>{h}</th>
                   ))}
                 </tr>
@@ -421,7 +421,7 @@ function SuperAdminView() {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  {['#', 'Ime', 'Опис', 'Статус', 'Акции'].map((h) => (
+                  {['#', 'Име', 'Опис', 'Статус', 'Акции'].map((h) => (
                     <th key={h} style={styles.th}>{h}</th>
                   ))}
                 </tr>
@@ -528,7 +528,7 @@ function SuperAdminView() {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  {['#', 'Ime', 'Земја', 'Акции'].map((h) => (
+                  {['#', 'Име', 'Земја', 'Акции'].map((h) => (
                     <th key={h} style={styles.th}>{h}</th>
                   ))}
                 </tr>
@@ -591,7 +591,7 @@ function SuperAdminView() {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  {['#', 'Ime', 'Град ID', 'Акции'].map((h) => (
+                  {['#', 'Име', 'Град ID', 'Акции'].map((h) => (
                     <th key={h} style={styles.th}>{h}</th>
                   ))}
                 </tr>
