@@ -472,7 +472,7 @@ function SuperAdminView() {
                   {editingCategory ? 'Уреди категорија' : 'Додај категорија'}
                 </div>
                 <div style={styles.fieldWrap}>
-                  <label style={styles.label}>Ime *</label>
+                  <label style={styles.label}>Име *</label>
                   <input
                     style={styles.input}
                     placeholder="пр. Дупки на патот"
@@ -556,7 +556,7 @@ function SuperAdminView() {
               <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <div style={styles.modalTitle}>Додај град</div>
                 <div style={styles.fieldWrap}>
-                  <label style={styles.label}>Ime *</label>
+                  <label style={styles.label}>Име *</label>
                   <input style={styles.input} placeholder="пр. Велес" value={cityForm.name}
                     onChange={(e) => setCityForm((p) => ({ ...p, name: e.target.value }))} />
                 </div>
@@ -619,7 +619,7 @@ function SuperAdminView() {
               <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <div style={styles.modalTitle}>Додај општина</div>
                 <div style={styles.fieldWrap}>
-                  <label style={styles.label}>Ime *</label>
+                  <label style={styles.label}>Име *</label>
                   <input style={styles.input} placeholder="пр. Општина Велес" value={municipalityForm.name}
                     onChange={(e) => setMunicipalityForm((p) => ({ ...p, name: e.target.value }))} />
                 </div>

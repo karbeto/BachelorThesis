@@ -1,36 +1,48 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
-import { ChevronLeft, MapPin, Calendar, User, Mail, RefreshCw } from 'lucide-react'
-import L from 'leaflet'
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import {
+  ChevronLeft,
+  MapPin,
+  Calendar,
+  User,
+  Mail,
+  RefreshCw,
+} from "lucide-react";
+import L from "leaflet";
 import {
   useReportDetailLogic,
   STATUS_MK,
   STATUS_COLORS,
   STATUS_OPTIONS,
-} from './logic'
-import { styles } from './style'
-import { BASE_URL } from './../../api/client';
+} from "./logic";
+import { styles } from "./style";
+import { BASE_URL } from "./../../api/client";
 
-delete (L.Icon.Default.prototype as any)._getIconUrl
+delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-})
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
 
 function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_COLORS[status] || { bg: '#F1F5F9', color: '#64748B' }
+  const s = STATUS_COLORS[status] || { bg: "#F1F5F9", color: "#64748B" };
   return (
-    <span style={{
-      fontSize: 13,
-      fontWeight: 500,
-      padding: '4px 12px',
-      borderRadius: 20,
-      background: s.bg,
-      color: s.color,
-    }}>
+    <span
+      style={{
+        fontSize: 13,
+        fontWeight: 500,
+        padding: "4px 12px",
+        borderRadius: 20,
+        background: s.bg,
+        color: s.color,
+      }}
+    >
       {STATUS_MK[status] || status}
     </span>
-  )
+  );
 }
 
 export default function ReportDetailPage() {
@@ -48,17 +60,17 @@ export default function ReportDetailPage() {
     handleStatusUpdate,
     isUpdating,
     goBack,
-  } = useReportDetailLogic()
+  } = useReportDetailLogic();
 
   if (isLoading) {
-    return <div style={styles.loadingWrap}>Се вчитува...</div>
+    return <div style={styles.loadingWrap}>Се вчитува...</div>;
   }
 
   if (!report) {
-    return <div style={styles.loadingWrap}>Пријавата не е пронајдена.</div>
+    return <div style={styles.loadingWrap}>Пријавата не е пронајдена.</div>;
   }
 
-  const hasLocation = report.latitude != null && report.longitude != null
+  const hasLocation = report.latitude != null && report.longitude != null;
 
   return (
     <div style={styles.root}>
@@ -85,28 +97,34 @@ export default function ReportDetailPage() {
           <div style={styles.metaRow}>
             <StatusBadge status={report.status} />
             <span style={styles.metaItem}>
-              <span style={{ fontWeight: 600, color: '#94A3B8', fontSize: 12 }}>
+              <span style={{ fontWeight: 600, color: "#94A3B8", fontSize: 12 }}>
                 #{report.id}
               </span>
             </span>
             <span style={styles.metaItem}>
               <Calendar size={13} />
-              {new Date(report.created_at).toLocaleDateString('mk-MK')}
+              {new Date(report.created_at).toLocaleDateString("mk-MK")}
             </span>
             {report.is_duplicate && (
-              <span style={{
-                fontSize: 12,
-                background: '#FEF2F2',
-                color: '#EF4444',
-                padding: '2px 10px',
-                borderRadius: 20,
-              }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  background: "#FEF2F2",
+                  color: "#EF4444",
+                  padding: "2px 10px",
+                  borderRadius: 20,
+                }}
+              >
                 Дупликат
               </span>
             )}
           </div>
         </div>
-        <button className="update-btn" style={styles.updateBtn} onClick={openModal}>
+        <button
+          className="update-btn"
+          style={styles.updateBtn}
+          onClick={openModal}
+        >
           <RefreshCw size={14} />
           Промени статус
         </button>
@@ -114,16 +132,12 @@ export default function ReportDetailPage() {
 
       {/* Main grid */}
       <div style={styles.grid}>
-
         {/* Left column */}
         <div style={styles.leftCol}>
-
           {/* Description */}
           <div style={styles.card}>
             <div style={styles.cardTitle}>Опис</div>
-            <p style={styles.descText}>
-              {report.description || 'Нема опис.'}
-            </p>
+            <p style={styles.descText}>{report.description || "Нема опис."}</p>
           </div>
 
           {/* Map */}
@@ -137,7 +151,7 @@ export default function ReportDetailPage() {
                 <MapContainer
                   center={[report.latitude, report.longitude]}
                   zoom={15}
-                  style={{ height: '100%', width: '100%' }}
+                  style={{ height: "100%", width: "100%" }}
                   zoomControl={true}
                 >
                   <TileLayer
@@ -146,7 +160,12 @@ export default function ReportDetailPage() {
                   />
                   <Marker position={[report.latitude, report.longitude]}>
                     <Popup>
-                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13 }}>
+                      <span
+                        style={{
+                          fontFamily: "DM Sans, sans-serif",
+                          fontSize: 13,
+                        }}
+                      >
                         {report.title}
                       </span>
                     </Popup>
@@ -154,7 +173,7 @@ export default function ReportDetailPage() {
                 </MapContainer>
               </div>
               {report.address && (
-                <p style={{ fontSize: 13, color: '#64748B', marginTop: 12 }}>
+                <p style={{ fontSize: 13, color: "#64748B", marginTop: 12 }}>
                   📍 {report.address}
                 </p>
               )}
@@ -172,7 +191,9 @@ export default function ReportDetailPage() {
                     src={`${BASE_URL}${img.image_url}`}
                     alt="report"
                     style={styles.imageThumb}
-                    onClick={() => window.open(`${BASE_URL}${img.image_url}`, '_blank')}
+                    onClick={() =>
+                      window.open(`${BASE_URL}${img.image_url}`, "_blank")
+                    }
                   />
                 ))}
               </div>
@@ -182,27 +203,51 @@ export default function ReportDetailPage() {
 
         {/* Right column */}
         <div style={styles.rightCol}>
-
           {/* Info card */}
           <div style={styles.card}>
             <div style={styles.cardTitle}>Детали</div>
             <div>
               {[
-                { label: 'ID', value: `#${report.id}` },
-                { label: 'Статус', value: STATUS_MK[report.status] || report.status },
-                { label: 'Категорија', value: `#${report.category_id}` },
-                { label: 'Општина', value: `#${report.municipality_id}` },
-                { label: 'Корисник', value: report.user_id ? `#${report.user_id}` : 'Анонимен' },
-                { label: 'Мејл пратен', value: report.email_sent ? '✓ Да' : '✗ Не' },
-                { label: 'Дупликат', value: report.is_duplicate ? '✓ Да' : '✗ Не' },
-                { label: 'Гласови', value: report.vote_count ?? 0 },
-                { label: 'Поднесено', value: new Date(report.created_at).toLocaleString('mk-MK') },
-                { label: 'Ажурирано', value: new Date(report.updated_at).toLocaleString('mk-MK') },
+                {
+                  label: "Категорија",
+                  value: report.category_name || `#${report.category_id}`,
+                },
+                {
+                  label: "Општина",
+                  value:
+                    report.municipality_name || `#${report.municipality_id}`,
+                },
+                {
+                  label: "Корисник",
+                  value:
+                    report.user_full_name ||
+                    (report.user_id ? `#${report.user_id}` : "Анонимен"),
+                },
+                {
+                  label: "Мејл пратен",
+                  value: report.email_sent ? "✓ Да" : "✗ Не",
+                },
+                {
+                  label: "Дупликат",
+                  value: report.is_duplicate ? "✓ Да" : "✗ Не",
+                },
+                { label: "Гласови", value: report.vote_count ?? 0 },
+                {
+                  label: "Поднесено",
+                  value: new Date(report.created_at).toLocaleString("mk-MK"),
+                },
+                {
+                  label: "Ажурирано",
+                  value: new Date(report.updated_at).toLocaleString("mk-MK"),
+                },
               ].map(({ label, value }, i) => (
-                <div key={i} style={{
-                  ...styles.infoRow,
-                  ...(i === 9 ? { borderBottom: 'none' } : {}),
-                }}>
+                <div
+                  key={i}
+                  style={{
+                    ...styles.infoRow,
+                    ...(i === 9 ? { borderBottom: "none" } : {}),
+                  }}
+                >
                   <span style={styles.infoLabel}>{label}</span>
                   <span style={styles.infoValue}>{String(value)}</span>
                 </div>
@@ -219,11 +264,16 @@ export default function ReportDetailPage() {
               <div style={styles.historyList}>
                 {history.map((h: any, i: number) => (
                   <div key={h.id} style={styles.historyItem}>
-                    {i < history.length - 1 && <div style={styles.historyLine} />}
-                    <div style={{
-                      ...styles.historyDot,
-                      background: STATUS_COLORS[h.new_status]?.color || '#38BDF8',
-                    }} />
+                    {i < history.length - 1 && (
+                      <div style={styles.historyLine} />
+                    )}
+                    <div
+                      style={{
+                        ...styles.historyDot,
+                        background:
+                          STATUS_COLORS[h.new_status]?.color || "#38BDF8",
+                      }}
+                    />
                     <div style={styles.historyContent}>
                       <span style={styles.historyStatus}>
                         {STATUS_MK[h.old_status]} → {STATUS_MK[h.new_status]}
@@ -232,7 +282,7 @@ export default function ReportDetailPage() {
                         <span style={styles.historyNote}>{h.note}</span>
                       )}
                       <span style={styles.historyDate}>
-                        {new Date(h.changed_at).toLocaleString('mk-MK')}
+                        {new Date(h.changed_at).toLocaleString("mk-MK")}
                       </span>
                     </div>
                   </div>
@@ -259,7 +309,9 @@ export default function ReportDetailPage() {
               onChange={(e) => setNewStatus(e.target.value)}
             >
               {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
 
@@ -272,7 +324,11 @@ export default function ReportDetailPage() {
             />
 
             <div style={styles.modalActions}>
-              <button className="cancel-btn" style={styles.cancelBtn} onClick={closeModal}>
+              <button
+                className="cancel-btn"
+                style={styles.cancelBtn}
+                onClick={closeModal}
+              >
                 Откажи
               </button>
               <button
@@ -281,12 +337,12 @@ export default function ReportDetailPage() {
                 onClick={handleStatusUpdate}
                 disabled={isUpdating}
               >
-                {isUpdating ? 'Се зачувува...' : 'Зачувај'}
+                {isUpdating ? "Се зачувува..." : "Зачувај"}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

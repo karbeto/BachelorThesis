@@ -1,13 +1,11 @@
 import uuid
-import os
-import shutil
 from pathlib import Path
 from fastapi import (
     APIRouter, Depends, HTTPException,
     status, UploadFile, File, Form,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func
 from geoalchemy2.functions import ST_DWithin, ST_GeomFromText
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
@@ -39,8 +37,6 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 DUPLICATE_RADIUS_METERS = 50
 
 
-# ─── Helpers ────────────────────────────────────────────────────────────────
-
 async def get_report_or_404(report_id: int, db: AsyncSession) -> Report:
     result = await db.execute(
         select(Report).where(Report.id == report_id)
@@ -69,7 +65,7 @@ async def get_report_images(
     result = await db.execute(
         select(ReportImage).where(ReportImage.report_id == report_id)
     )
-    return result.scalars().all()
+    return list(result.scalars().all())
 
 
 async def build_report_response(
@@ -93,6 +89,25 @@ async def build_report_response(
             longitude = row[0]
             latitude = row[1]
 
+    cat_result = await db.execute(
+        select(Category.name).where(Category.id == report.category_id)
+    )
+    category_name = cat_result.scalar_one_or_none()
+
+    mun_result = await db.execute(
+        select(Municipality.name).where(
+            Municipality.id == report.municipality_id
+        )
+    )
+    municipality_name = mun_result.scalar_one_or_none()
+    
+    user_full_name = None
+    if report.user_id:
+        user_result = await db.execute(
+            select(User.full_name).where(User.id == int(report.user_id))
+        )
+        user_full_name = user_result.scalar_one_or_none()
+
     return ReportResponse(
         id=report.id,
         title=report.title,
@@ -103,8 +118,11 @@ async def build_report_response(
         parent_report_id=report.parent_report_id,
         email_sent=report.email_sent,
         category_id=report.category_id,
+        category_name=category_name,
         municipality_id=report.municipality_id,
+        municipality_name=municipality_name,
         user_id=report.user_id,
+        user_full_name=user_full_name,
         latitude=latitude,
         longitude=longitude,
         images=[ReportImageResponse.model_validate(img) for img in images],
@@ -167,8 +185,6 @@ async def create_notification(
     db.add(notification)
 
 
-# ─── Endpoints ──────────────────────────────────────────────────────────────
-
 @router.post(
     "/",
     response_model=ReportResponse,
@@ -185,7 +201,7 @@ async def submit_report(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # 1. Validate municipality exists
+
     municipality_result = await db.execute(
         select(Municipality).where(Municipality.id == municipality_id)
     )
@@ -195,7 +211,6 @@ async def submit_report(
             detail="Municipality not found",
         )
 
-    # 2. Load active categories for AI classification
     categories_result = await db.execute(
         select(Category).where(Category.is_active == True)  # noqa: E712
     )
@@ -205,20 +220,20 @@ async def submit_report(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No active categories found",
         )
-    category_names = [c.name for c in categories]
+    category_names = [str(c.name) for c in categories]
 
-    # 3. Handle image upload
     image_base64 = None
     image_bytes = None
     image_filename = None
 
-    if image and image.content_type in ("image/jpeg", "image/png", "image/webp"):
+    if image and image.content_type in (
+        "image/jpeg", "image/png", "image/webp"
+    ):
         image_bytes = await image.read()
         image_base64 = encode_image_to_base64(image_bytes)
         ext = image.filename.rsplit(".", 1)[-1] if image.filename else "jpg"
         image_filename = f"{uuid.uuid4()}.{ext}"
 
-    # 4. AI classification
     ai_result = await classify_report(
         description=description or title,
         category_names=category_names,
@@ -229,7 +244,6 @@ async def submit_report(
         categories[0],
     )
 
-    # 5. Duplicate detection via PostGIS
     duplicate_parent = await find_duplicate(
         latitude=latitude,
         longitude=longitude,
@@ -239,7 +253,6 @@ async def submit_report(
     is_duplicate = duplicate_parent is not None
     parent_report_id = duplicate_parent.id if duplicate_parent else None
 
-    # 6. Create the report
     location = from_shape(Point(longitude, latitude), srid=4326)
     report = Report(
         title=title,
@@ -258,12 +271,10 @@ async def submit_report(
     await db.flush()
     await db.refresh(report)
 
-    # 7. Save image to disk and create ReportImage record
     if image_bytes and image_filename:
         file_path = UPLOAD_DIR / image_filename
         with open(file_path, "wb") as f:
             f.write(image_bytes)
-
         report_image = ReportImage(
             report_id=report.id,
             image_url=f"/uploads/{image_filename}",
@@ -272,7 +283,6 @@ async def submit_report(
         db.add(report_image)
         await db.flush()
 
-    # 8. Send email to municipal department (only for non-duplicates)
     email_sent = False
     if not is_duplicate:
         routing_email = await get_routing_email(
@@ -282,32 +292,45 @@ async def submit_report(
         )
         if routing_email:
             email_sent = await send_report_email(
-                to_email=routing_email,
+                to_email=str(routing_email),
                 report_id=report.id,
                 title=title,
                 description=description,
-                category_name=matched_category.name,
+                category_name=str(matched_category.name),
                 address=address,
                 latitude=latitude,
                 longitude=longitude,
-                citizen_email=current_user.email,
+                citizen_email=str(current_user.email),
             )
             report.email_sent = email_sent
             await db.flush()
 
-    # 9. Create submission notification for citizen
     await create_notification(
         user_id=current_user.id,
         report_id=report.id,
         message=(
             f"Вашата пријава #{report.id} '{title}' е успешно поднесена."
             if not is_duplicate
-            else f"Сличен проблем веќе е пријавен. Вашиот глас е додаден."
+            else "Сличен проблем веќе е пријавен. Вашиот глас е додаден."
         ),
         db=db,
     )
 
     return await build_report_response(report, db)
+
+
+@router.get("/my", response_model=list[ReportResponse])
+async def my_reports(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Report)
+        .where(Report.user_id == current_user.id)
+        .order_by(Report.created_at.desc())
+    )
+    reports = result.scalars().all()
+    return [await build_report_response(r, db) for r in reports]
 
 
 @router.get("/", response_model=list[ReportResponse])
@@ -338,20 +361,6 @@ async def list_reports(
     return [await build_report_response(r, db) for r in reports]
 
 
-@router.get("/my", response_model=list[ReportResponse])
-async def my_reports(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    result = await db.execute(
-        select(Report)
-        .where(Report.user_id == current_user.id)
-        .order_by(Report.created_at.desc())
-    )
-    reports = result.scalars().all()
-    return [await build_report_response(r, db) for r in reports]
-
-
 @router.get("/{report_id}", response_model=ReportResponse)
 async def get_report(
     report_id: int,
@@ -377,11 +386,9 @@ async def update_report_status(
             detail="Report is already in this status",
         )
 
-    # Update status
     report.status = payload.status
     await db.flush()
 
-    # Log status history
     history = ReportStatusHistory(
         report_id=report.id,
         changed_by=current_user.id,
@@ -392,7 +399,6 @@ async def update_report_status(
     db.add(history)
     await db.flush()
 
-    # Notify citizen
     if report.user_id:
         status_translations = {
             ReportStatus.submitted: "Поднесено",
@@ -400,7 +406,9 @@ async def update_report_status(
             ReportStatus.resolved: "Решено ✓",
             ReportStatus.rejected: "Одбиено",
         }
-        status_mk = status_translations.get(payload.status, payload.status.value)
+        status_mk = status_translations.get(
+            payload.status, payload.status.value
+        )
 
         await create_notification(
             user_id=report.user_id,
@@ -412,16 +420,15 @@ async def update_report_status(
             db=db,
         )
 
-        # Send email to citizen on status change
-        result = await db.execute(
+        citizen_result = await db.execute(
             select(User).where(User.id == report.user_id)
         )
-        citizen = result.scalar_one_or_none()
+        citizen = citizen_result.scalar_one_or_none()
         if citizen:
             await send_status_update_email(
-                to_email=citizen.email,
+                to_email=str(citizen.email),
                 report_id=report.id,
-                title=report.title,
+                title=str(report.title),
                 new_status=payload.status.value,
             )
 

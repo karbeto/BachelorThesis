@@ -41,8 +41,11 @@ class ReportResponse(BaseModel):
     parent_report_id: int | None
     email_sent: bool
     category_id: int
+    category_name: str | None = None
     municipality_id: int
+    municipality_name: str | None = None
     user_id: int | None
+    user_full_name: str | None = None
     latitude: float | None = None
     longitude: float | None = None
     images: list[ReportImageResponse] = []
