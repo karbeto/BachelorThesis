@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigation } from '@react-navigation/native'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { getMyReports } from '../../api/reports'
@@ -17,7 +16,6 @@ const validateConfirm = (password: string) => (v: string) =>
 export function useProfileLogic() {
   const { user, logout } = useAuth()
   const { theme, toggleTheme, isDarkMode } = useTheme()
-  const navigation = useNavigation<any>()
 
   const passwordModal = useModal()
   const logoutModal = useModal()
@@ -26,10 +24,7 @@ export function useProfileLogic() {
 
   const currentPassword = useFormField<string>('', validatePassword)
   const newPassword = useFormField<string>('', validatePassword)
-  const confirmPassword = useFormField<string>(
-    '',
-    validateConfirm(newPassword.value),
-  )
+  const confirmPassword = useFormField<string>('', validateConfirm(newPassword.value))
 
   const { data: myReports } = useQuery({
     queryKey: ['my-reports'],
@@ -39,9 +34,7 @@ export function useProfileLogic() {
   const stats = {
     total: myReports?.length ?? 0,
     resolved: myReports?.filter((r: any) => r.status === 'resolved').length ?? 0,
-    pending: myReports?.filter((r: any) =>
-      r.status === 'submitted' || r.status === 'in_progress'
-    ).length ?? 0,
+    pending: myReports?.filter((r: any) => r.status === 'submitted' || r.status === 'in_progress').length ?? 0,
   }
 
   const handleChangePassword = async () => {
@@ -85,14 +78,6 @@ export function useProfileLogic() {
     return map[role] || role
   }
 
-  const getInitials = (name: string) =>
-    name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase()
-
   return {
     user,
     stats,
@@ -107,6 +92,5 @@ export function useProfileLogic() {
     handleChangePassword,
     handleLogout,
     getRoleLabel,
-    getInitials,
   }
 }
