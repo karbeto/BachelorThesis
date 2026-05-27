@@ -1,18 +1,16 @@
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native'
-import { useState } from 'react'
-import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../context/ThemeContext'
 import { createStyles } from './style'
 import { useLoginLogic } from './logic'
+import { CustomInput } from '../../../components/ui/CustomInput' // Adjust path as needed
 
 export default function LoginScreen({ navigation }: any) {
   const { theme } = useTheme()
@@ -21,14 +19,9 @@ export default function LoginScreen({ navigation }: any) {
     email,
     password,
     loading,
-    showPassword,
-    setShowPassword,
     handleLogin,
     goToRegister,
   } = useLoginLogic(navigation)
-
-  const [emailFocused, setEmailFocused] = useState(false)
-  const [passwordFocused, setPasswordFocused] = useState(false)
 
   return (
     <KeyboardAvoidingView
@@ -40,7 +33,7 @@ export default function LoginScreen({ navigation }: any) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Logo */}
+        {/* Logo Section */}
         <View style={styles.logoWrap}>
           <View style={styles.logoCircle}>
             <View style={styles.logoInner} />
@@ -49,84 +42,36 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={styles.subtitle}>Пријави се во твојот акаунт</Text>
         </View>
 
-        {/* Form */}
+        {/* Form Section */}
         <View style={styles.form}>
+          <CustomInput
+            label="Е-пошта"
+            iconName="mail-outline"
+            placeholder="vasiot@email.mk"
+            value={email.value}
+            onChangeText={email.onChange}
+            error={email.error}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            theme={theme}
+            styles={styles}
+          />
 
-          {/* Email */}
-          <View style={styles.fieldWrap}>
-            <Text style={styles.label}>Е-пошта</Text>
-            <View style={[
-              styles.inputRow,
-              emailFocused && styles.inputRowFocused,
-              email.error && styles.inputRowError,
-            ]}>
-              <Ionicons
-                name="mail-outline"
-                size={18}
-                color={email.error ? theme.colors.error : theme.colors.textSecondary}
-                style={{ marginRight: theme.spacing.sm }}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="vasiot@email.mk"
-                placeholderTextColor={theme.colors.textSecondary}
-                value={email.value}
-                onChangeText={email.onChange}
-                onFocus={() => setEmailFocused(true)}
-                onBlur={() => setEmailFocused(false)}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-              />
-            </View>
-            {email.error && (
-              <Text style={styles.errorText}>{email.error}</Text>
-            )}
-          </View>
+          <CustomInput
+            label="Лозинка"
+            iconName="lock-closed-outline"
+            placeholder="••••••••"
+            value={password.value}
+            onChangeText={password.onChange}
+            error={password.error}
+            autoComplete="password"
+            isPassword={true}
+            theme={theme}
+            styles={styles}
+          />
 
-          {/* Password */}
-          <View style={styles.fieldWrap}>
-            <Text style={styles.label}>Лозинка</Text>
-            <View style={[
-              styles.inputRow,
-              passwordFocused && styles.inputRowFocused,
-              password.error && styles.inputRowError,
-            ]}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={18}
-                color={password.error ? theme.colors.error : theme.colors.textSecondary}
-                style={{ marginRight: theme.spacing.sm }}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor={theme.colors.textSecondary}
-                value={password.value}
-                onChangeText={password.onChange}
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-                secureTextEntry={!showPassword}
-                autoComplete="password"
-              />
-              <TouchableOpacity
-                style={styles.eyeBtn}
-                onPress={() => setShowPassword(!showPassword)}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={18}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-            {password.error && (
-              <Text style={styles.errorText}>{password.error}</Text>
-            )}
-          </View>
-
-          {/* Submit */}
+          {/* Submit Button */}
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleLogin}
@@ -141,7 +86,7 @@ export default function LoginScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Footer */}
+        {/* Footer Section */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Немаш акаунт?</Text>
           <TouchableOpacity onPress={goToRegister} activeOpacity={0.7}>

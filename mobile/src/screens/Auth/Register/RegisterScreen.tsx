@@ -1,110 +1,16 @@
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native'
-import { useState } from 'react'
-import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../../context/ThemeContext'
 import { createStyles } from './style'
 import { useRegisterLogic } from './logic'
-
-interface FieldProps {
-  label: string
-  optional?: boolean
-  icon: string
-  value: string
-  onChange: (val: string) => void
-  error?: string
-  placeholder: string
-  keyboardType?: any
-  autoCapitalize?: any
-  autoComplete?: any
-  secureTextEntry?: boolean
-  showToggle?: boolean
-  onToggle?: () => void
-  onFocus?: () => void
-  onBlur?: () => void
-  focused?: boolean
-  theme: any
-  styles: any
-}
-
-function Field({
-  label,
-  optional,
-  icon,
-  value,
-  onChange,
-  error,
-  placeholder,
-  keyboardType = 'default',
-  autoCapitalize = 'none',
-  autoComplete,
-  secureTextEntry = false,
-  showToggle,
-  onToggle,
-  onFocus,
-  onBlur,
-  focused,
-  theme,
-  styles,
-}: FieldProps) {
-  return (
-    <View style={styles.fieldWrap}>
-      <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
-        {optional && (
-          <Text style={styles.optionalLabel}>опционално</Text>
-        )}
-      </View>
-      <View style={[
-        styles.inputRow,
-        focused && styles.inputRowFocused,
-        error && styles.inputRowError,
-      ]}>
-        <Ionicons
-          name={icon as any}
-          size={18}
-          color={error ? theme.colors.error : theme.colors.textSecondary}
-          style={{ marginRight: theme.spacing.sm }}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={placeholder}
-          placeholderTextColor={theme.colors.textSecondary}
-          value={value}
-          onChangeText={onChange}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          autoComplete={autoComplete}
-          secureTextEntry={secureTextEntry}
-        />
-        {showToggle && (
-          <TouchableOpacity
-            style={styles.eyeBtn}
-            onPress={onToggle}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
-              size={18}
-              color={theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
-    </View>
-  )
-}
+import { CustomInput } from '../../../components/ui/CustomInput'
 
 export default function RegisterScreen({ navigation }: any) {
   const { theme } = useTheme()
@@ -116,17 +22,9 @@ export default function RegisterScreen({ navigation }: any) {
     password,
     confirmPassword,
     loading,
-    showPassword,
-    showConfirm,
-    setShowPassword,
-    setShowConfirm,
     handleRegister,
     goToLogin,
   } = useRegisterLogic(navigation)
-
-  const [focused, setFocused] = useState<string | null>(null)
-  const onFocus = (name: string) => () => setFocused(name)
-  const onBlur = () => setFocused(null)
 
   return (
     <KeyboardAvoidingView
@@ -138,7 +36,7 @@ export default function RegisterScreen({ navigation }: any) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
             <View style={styles.logoInner} />
@@ -147,93 +45,75 @@ export default function RegisterScreen({ navigation }: any) {
           <Text style={styles.subtitle}>Придружи се и пријавувај проблеми</Text>
         </View>
 
-        {/* Form */}
+        {/* Form Section */}
         <View style={styles.form}>
-          <Field
+          <CustomInput
             label="Име и презиме"
-            icon="person-outline"
+            iconName="person-outline"
             value={fullName.value}
-            onChange={fullName.onChange}
+            onChangeText={fullName.onChange}
             error={fullName.error}
             placeholder="Кристијан Карбевски"
             autoCapitalize="words"
             autoComplete="name"
-            focused={focused === 'name'}
-            onFocus={onFocus('name')}
-            onBlur={onBlur}
             theme={theme}
             styles={styles}
           />
 
-          <Field
+          <CustomInput
             label="Е-пошта"
-            icon="mail-outline"
+            iconName="mail-outline"
             value={email.value}
-            onChange={email.onChange}
+            onChangeText={email.onChange}
             error={email.error}
             placeholder="vasiot@email.mk"
             keyboardType="email-address"
             autoComplete="email"
-            focused={focused === 'email'}
-            onFocus={onFocus('email')}
-            onBlur={onBlur}
             theme={theme}
             styles={styles}
           />
 
-          <Field
+          <CustomInput
             label="Телефон"
             optional
-            icon="call-outline"
+            iconName="call-outline"
             value={phone.value}
-            onChange={phone.onChange}
+            onChangeText={phone.onChange}
             error={phone.error}
             placeholder="+389 70 000 000"
             keyboardType="phone-pad"
             autoComplete="tel"
-            focused={focused === 'phone'}
-            onFocus={onFocus('phone')}
-            onBlur={onBlur}
             theme={theme}
             styles={styles}
           />
 
-          <Field
+          <CustomInput
             label="Лозинка"
-            icon="lock-closed-outline"
+            iconName="lock-closed-outline"
             value={password.value}
-            onChange={password.onChange}
+            onChangeText={password.onChange}
             error={password.error}
             placeholder="••••••••"
             autoComplete="new-password"
-            secureTextEntry={!showPassword}
-            showToggle
-            onToggle={() => setShowPassword(!showPassword)}
-            focused={focused === 'password'}
-            onFocus={onFocus('password')}
-            onBlur={onBlur}
+            isPassword={true}
             theme={theme}
             styles={styles}
           />
 
-          <Field
+          <CustomInput
             label="Потврди лозинка"
-            icon="lock-closed-outline"
+            iconName="lock-closed-outline"
             value={confirmPassword.value}
-            onChange={confirmPassword.onChange}
+            onChangeText={confirmPassword.onChange}
             error={confirmPassword.error}
             placeholder="••••••••"
             autoComplete="new-password"
-            secureTextEntry={!showConfirm}
-            showToggle
-            onToggle={() => setShowConfirm(!showConfirm)}
-            focused={focused === 'confirm'}
-            onFocus={onFocus('confirm')}
-            onBlur={onBlur}
+            isPassword={true}
             theme={theme}
             styles={styles}
           />
 
+          {/* Submit Button */}
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleRegister}
@@ -248,7 +128,7 @@ export default function RegisterScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Footer */}
+        {/* Footer Section */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Веќе имаш профил?</Text>
           <TouchableOpacity onPress={goToLogin} activeOpacity={0.7}>

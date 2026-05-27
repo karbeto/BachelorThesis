@@ -24,8 +24,6 @@ const validateConfirmPassword = (password: string) => (value: string) => {
 export function useRegisterLogic(navigation: any) {
   const { setAuth } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
 
   const fullName = useFormField<string>('', validateName)
   const email = useFormField<string>('', validateEmail)
@@ -72,10 +70,6 @@ export function useRegisterLogic(navigation: any) {
     password,
     confirmPassword,
     loading,
-    showPassword,
-    showConfirm,
-    setShowPassword,
-    setShowConfirm,
     handleRegister,
     goToLogin,
   }

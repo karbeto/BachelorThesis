@@ -11,7 +11,6 @@ import Toast from 'react-native-toast-message'
 export function useLoginLogic(navigation: any) {
   const { setAuth } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
 
   const email = useFormField<string>('', validateEmail)
   const password = useFormField<string>('', validatePassword)
@@ -42,8 +41,6 @@ export function useLoginLogic(navigation: any) {
     email,
     password,
     loading,
-    showPassword,
-    setShowPassword,
     handleLogin,
     goToRegister,
   }
