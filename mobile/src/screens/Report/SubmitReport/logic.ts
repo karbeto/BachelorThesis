@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react'
-import { Alert } from 'react-native'
+import { Alert, Platform } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { submitReport } from '../../../api/reports'
 import { useFormField } from '../../../utils/formHooks'
 import { useNavigation } from '@react-navigation/native'
 import Toast from 'react-native-toast-message'
 
 export type SubmitStep = 'photo' | 'location' | 'form'
+
+interface FormDataFile {
+  uri: string
+  name: string
+  type: string
+}
 
 const validateTitle = (value: string) =>
   value.trim().length >= 3 ? undefined : 'Насловот мора да има минимум 3 карактери'
@@ -18,7 +24,7 @@ export function useSubmitReportLogic() {
   const queryClient = useQueryClient()
 
   const [step, setStep] = useState<SubmitStep>('photo')
-  const [image, setImage] = useState<any>(null)
+  const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null)
   const [location, setLocation] = useState<{
     latitude: number
     longitude: number
@@ -30,7 +36,6 @@ export function useSubmitReportLogic() {
   const title = useFormField<string>('', validateTitle)
   const description = useFormField<string>('')
 
-  // Auto-get location when entering location step
   useEffect(() => {
     if (step === 'location' && !location) {
       getLocation()
@@ -49,26 +54,28 @@ export function useSubmitReportLogic() {
         setLocating(false)
         return
       }
+
       const loc = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       })
-      setLocation({
+      
+      const currentCoords = {
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
-      })
-
-      // Reverse geocode
-      const geocode = await Location.reverseGeocodeAsync({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      })
-      if (geocode.length > 0) {
-        const g = geocode[0]
-        setAddress(
-          [g.street, g.streetNumber, g.city].filter(Boolean).join(' '),
-        )
       }
-    } catch {
+      
+      setLocation(currentCoords)
+
+      const geocode = await Location.reverseGeocodeAsync(currentCoords)
+      if (geocode && geocode.length > 0) {
+        const g = geocode[0]
+        const computedAddress = [g.street, g.streetNumber, g.city]
+          .filter(Boolean)
+          .join(' ')
+        
+        setAddress(computedAddress || `${currentCoords.latitude.toFixed(5)}, ${currentCoords.longitude.toFixed(5)}`)
+      }
+    } catch (error) {
       Toast.show({ type: 'error', text1: 'Не може да се земе локацијата' })
     } finally {
       setLocating(false)
@@ -81,13 +88,15 @@ export function useSubmitReportLogic() {
       Alert.alert('Камера', 'Дозволете пристап до камерата.')
       return
     }
+    
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
       allowsEditing: true,
       aspect: [4, 3],
     })
-    if (!result.canceled) {
+    
+    if (!result.canceled && result.assets?.[0]) {
       setImage(result.assets[0])
       setStep('location')
     }
@@ -99,13 +108,15 @@ export function useSubmitReportLogic() {
       Alert.alert('Галерија', 'Дозволете пристап до галеријата.')
       return
     }
+    
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
       allowsEditing: true,
       aspect: [4, 3],
     })
-    if (!result.canceled) {
+    
+    if (!result.canceled && result.assets?.[0]) {
       setImage(result.assets[0])
       setStep('location')
     }
@@ -123,22 +134,30 @@ export function useSubmitReportLogic() {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (!title.validateField()) return
+      if (!title.validateField()) {
+        throw new Error('Validation failed')
+      }
 
       const formData = new FormData()
-      formData.append('title', title.value)
-      formData.append('description', description.value)
+      formData.append('title', title.value.trim())
+      formData.append('description', description.value.trim())
       formData.append('latitude', String(location!.latitude))
       formData.append('longitude', String(location!.longitude))
       formData.append('municipality_id', String(municipalityId))
       if (address) formData.append('address', address)
 
       if (image) {
-        const uri = image.uri
-        const filename = uri.split('/').pop() || 'photo.jpg'
+        const uri = Platform.OS === 'android' ? image.uri : image.uri.replace('file://', '')
+        const filename = image.uri.split('/').pop() || `report_${Date.now()}.jpg`
+        
         const match = /\.(\w+)$/.exec(filename)
         const type = match ? `image/${match[1]}` : 'image/jpeg'
-        formData.append('image', { uri, name: filename, type } as any)
+        
+        formData.append('image', {
+          uri,
+          name: filename,
+          type,
+        } as unknown as Blob) 
       }
 
       return submitReport(formData)
@@ -154,6 +173,8 @@ export function useSubmitReportLogic() {
       navigation.goBack()
     },
     onError: (err: any) => {
+      if (err.message === 'Validation failed') return
+
       Toast.show({
         type: 'error',
         text1: 'Грешка при поднесување',
