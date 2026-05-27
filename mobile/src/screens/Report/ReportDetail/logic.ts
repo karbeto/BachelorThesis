@@ -6,20 +6,6 @@ import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../utils/formHooks'
 import Toast from 'react-native-toast-message'
 
-export const STATUS_MK: Record<string, string> = {
-  submitted: 'Поднесено',
-  in_progress: 'Се решава',
-  resolved: 'Решено',
-  rejected: 'Одбиено',
-}
-
-export const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  submitted: { bg: '#FFFBEB', color: '#F59E0B' },
-  in_progress: { bg: '#F0F9FF', color: '#38BDF8' },
-  resolved: { bg: '#F0FDF4', color: '#22C55E' },
-  rejected: { bg: '#FEF2F2', color: '#EF4444' },
-}
-
 export function useReportDetailLogic() {
   const route = useRoute<any>()
   const navigation = useNavigation<any>()
@@ -41,8 +27,7 @@ export function useReportDetailLogic() {
   })
 
   const voteMutation = useMutation({
-    mutationFn: () =>
-      hasVoted ? unvoteReport(id) : voteReport(id),
+    mutationFn: () => (hasVoted ? unvoteReport(id) : voteReport(id)),
     onSuccess: () => {
       setHasVoted(!hasVoted)
       queryClient.invalidateQueries({ queryKey: ['report', id] })
@@ -64,10 +49,7 @@ export function useReportDetailLogic() {
   const ratingMutation = useMutation({
     mutationFn: () => rateReport(id, rating, ratingComment || undefined),
     onSuccess: () => {
-      Toast.show({
-        type: 'success',
-        text1: 'Оценката е зачувана ✓',
-      })
+      Toast.show({ type: 'success', text1: 'Оценката е зачувана ✓' })
       queryClient.invalidateQueries({ queryKey: ['report', id] })
       ratingModal.close()
       setRating(0)
@@ -81,20 +63,6 @@ export function useReportDetailLogic() {
     },
   })
 
-  const openImage = (url: string) => {
-    setSelectedImage(url)
-    imageModal.open()
-  }
-
-  const closeImage = () => {
-    setSelectedImage(null)
-    imageModal.close()
-  }
-
-  const isOwner = user?.id === report?.user_id
-  const isResolved = report?.status === 'resolved'
-  const canRate = isOwner && isResolved
-
   return {
     report,
     isLoading,
@@ -106,10 +74,15 @@ export function useReportDetailLogic() {
     ratingModal,
     imageModal,
     selectedImage,
-    openImage,
-    closeImage,
-    isOwner,
-    canRate,
+    openImage: (url: string) => {
+      setSelectedImage(url)
+      imageModal.open()
+    },
+    closeImage: () => {
+      setSelectedImage(null)
+      imageModal.close()
+    },
+    canRate: user?.id === report?.user_id && report?.status === 'resolved',
     handleVote: () => voteMutation.mutate(),
     handleRating: () => ratingMutation.mutate(),
     isVoting: voteMutation.isPending,
