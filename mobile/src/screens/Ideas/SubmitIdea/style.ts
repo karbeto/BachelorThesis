@@ -1,4 +1,7 @@
-const createStyles = (theme: Theme) =>
+import { StyleSheet, Platform } from 'react-native'
+import { Theme } from '../../../constants/theme'
+
+export const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -8,7 +11,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: theme.spacing.md,
-      paddingTop: 56,
+      paddingTop: Platform.OS === 'ios' ? 60 : 44,
       paddingBottom: theme.spacing.md,
       backgroundColor: theme.colors.surface,
       borderBottomWidth: 1,
@@ -34,7 +37,7 @@ const createStyles = (theme: Theme) =>
     content: {
       padding: theme.spacing.lg,
       gap: theme.spacing.lg,
-      paddingBottom: theme.spacing.xxl,
+      paddingBottom: Platform.OS === 'ios' ? 40 : theme.spacing.xl,
     },
     infoCard: {
       backgroundColor: theme.colors.accent + '15',
@@ -82,12 +85,12 @@ const createStyles = (theme: Theme) =>
       paddingVertical: 0,
     },
     textAreaWrap: {
-      height: 120,
+      height: 140,
       alignItems: 'flex-start',
       paddingTop: theme.spacing.sm,
     },
     textArea: {
-      height: 100,
+      height: 120,
       textAlignVertical: 'top',
     },
     errorText: {
@@ -105,7 +108,7 @@ const createStyles = (theme: Theme) =>
       ...theme.shadows.medium,
     },
     submitBtnDisabled: {
-      opacity: 0.7,
+      opacity: 0.6,
     },
     submitBtnText: {
       ...theme.typography.body,
