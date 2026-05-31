@@ -1,4 +1,5 @@
 import uuid
+import aiofiles 
 from pathlib import Path
 from fastapi import (
     APIRouter, Depends, HTTPException,
@@ -22,7 +23,7 @@ from app.models.user import User
 from app.schemas.report import (
     ReportResponse,
     ReportStatusUpdate,
-    ReportImageResponse,
+    ReportImageResponse,       
     ReportStatusHistoryResponse,
 )
 from app.core.dependencies import get_current_user, get_current_admin
@@ -201,7 +202,6 @@ async def submit_report(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-
     municipality_result = await db.execute(
         select(Municipality).where(Municipality.id == municipality_id)
     )
@@ -226,9 +226,7 @@ async def submit_report(
     image_bytes = None
     image_filename = None
 
-    if image and image.content_type in (
-        "image/jpeg", "image/png", "image/webp"
-    ):
+    if image and image.content_type in ("image/jpeg", "image/png", "image/webp"):
         image_bytes = await image.read()
         image_base64 = encode_image_to_base64(image_bytes)
         ext = image.filename.rsplit(".", 1)[-1] if image.filename else "jpg"
@@ -273,8 +271,9 @@ async def submit_report(
 
     if image_bytes and image_filename:
         file_path = UPLOAD_DIR / image_filename
-        with open(file_path, "wb") as f:
-            f.write(image_bytes)
+        async with aiofiles.open(file_path, "wb") as f:
+            await f.write(image_bytes)
+            
         report_image = ReportImage(
             report_id=report.id,
             image_url=f"/uploads/{image_filename}",
@@ -291,17 +290,22 @@ async def submit_report(
             db=db,
         )
         if routing_email:
-            email_sent = await send_report_email(
-                to_email=str(routing_email),
-                report_id=report.id,
-                title=title,
-                description=description,
-                category_name=str(matched_category.name),
-                address=address,
-                latitude=latitude,
-                longitude=longitude,
-                citizen_email=str(current_user.email),
-            )
+            try:
+                email_sent = await send_report_email(
+                    to_email=str(routing_email),
+                    report_id=report.id,
+                    title=title,
+                    description=description,
+                    category_name=str(matched_category.name),
+                    address=address,
+                    latitude=latitude,
+                    longitude=longitude,
+                    citizen_email=str(current_user.email),
+                )
+            except Exception as e:
+                print(f"SMTP Error encountered: {e}")
+                email_sent = False
+                
             report.email_sent = email_sent
             await db.flush()
 
@@ -316,6 +320,10 @@ async def submit_report(
         db=db,
     )
 
+    await db.commit()
+    
+    await db.refresh(report)
+    
     return await build_report_response(report, db)
 
 
@@ -342,19 +350,16 @@ async def list_reports(
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
 ):
-    query = (
-        select(Report)
-        .where(Report.is_duplicate == False)  # noqa: E712
-        .order_by(Report.created_at.desc())
-        .offset(skip)
-        .limit(limit)
-    )
+    query = select(Report).where(Report.is_duplicate == False)  # noqa: E712
+    
     if municipality_id:
         query = query.where(Report.municipality_id == municipality_id)
     if category_id:
         query = query.where(Report.category_id == category_id)
     if status:
         query = query.where(Report.status == status)
+
+    query = query.order_by(Report.created_at.desc()).offset(skip).limit(limit)
 
     result = await db.execute(query)
     reports = result.scalars().all()
@@ -425,13 +430,17 @@ async def update_report_status(
         )
         citizen = citizen_result.scalar_one_or_none()
         if citizen:
-            await send_status_update_email(
-                to_email=str(citizen.email),
-                report_id=report.id,
-                title=str(report.title),
-                new_status=payload.status.value,
-            )
+            try:
+                await send_status_update_email(
+                    to_email=str(citizen.email),
+                    report_id=report.id,
+                    title=str(report.title),
+                    new_status=payload.status.value,
+                )
+            except Exception as e:
+                print(f"Status SMTP communication crash: {e}")
 
+    await db.commit()
     await db.refresh(report)
     return await build_report_response(report, db)
 
@@ -474,3 +483,5 @@ async def delete_report(
             detail="You can only delete reports that are still submitted",
         )
     await db.delete(report)
+    
+    await db.commit()

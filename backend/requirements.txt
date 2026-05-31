@@ -14,3 +14,4 @@ geoalchemy2
 email-validator
 shapely
 httpx
+aiofiles
