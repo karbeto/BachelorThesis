@@ -1,18 +1,32 @@
-import React, { useMemo } from 'react'
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Modal } from 'react-native'
-import { WebView } from 'react-native-webview'
-import { Ionicons } from '@expo/vector-icons'
-import { useTheme } from '../../../context/ThemeContext'
-import { createStyles } from './style'
-import { useReportDetailLogic } from './logic'
-import { RatingModal } from './components/RatingModal'
-import { STATUS_MK, STATUS_COLORS, DEFAULT_STATUS_THEME } from '../../../constants/statusConfig'
+import React, { useMemo } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  Modal,
+} from "react-native";
+import { WebView } from "react-native-webview";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../../context/ThemeContext";
+import { createStyles } from "./style";
+import { useReportDetailLogic } from "./logic";
+import { RatingModal } from "./components/RatingModal";
+import * as Haptics from "expo-haptics";
+import {
+  STATUS_MK,
+  STATUS_COLORS,
+  DEFAULT_STATUS_THEME,
+} from "../../../constants/statusConfig";
+import { Skeleton } from "../../../components/Skeleton";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function ReportDetailScreen() {
-  const { theme } = useTheme()
-  const styles = createStyles(theme)
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const {
     report,
     isLoading,
@@ -32,11 +46,13 @@ export default function ReportDetailScreen() {
     isVoting,
     isRating,
     goBack,
-  } = useReportDetailLogic()
+  } = useReportDetailLogic();
 
   const staticMapHtml = useMemo(() => {
-    if (!report || report.latitude == null || report.longitude == null) return ''
-    const markerColor = (STATUS_COLORS[report.status] || DEFAULT_STATUS_THEME).color
+    if (!report || report.latitude == null || report.longitude == null)
+      return "";
+    const markerColor = (STATUS_COLORS[report.status] || DEFAULT_STATUS_THEME)
+      .color;
 
     return `
       <!DOCTYPE html>
@@ -56,60 +72,162 @@ export default function ReportDetailScreen() {
         </script>
       </body>
       </html>
-    `
-  }, [report])
+    `;
+  }, [report]);
 
   if (isLoading) {
     return (
-      <View style={styles.loadingWrap}>
-        <ActivityIndicator color={theme.colors.accent} size="large" />
+      <View
+        style={[
+          styles.container,
+          { padding: theme.spacing.lg, gap: theme.spacing.lg, paddingTop: 64 },
+        ]}
+      >
+        {/* Header Skeleton */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: theme.spacing.md,
+          }}
+        >
+          <Skeleton
+            width={36}
+            height={36}
+            borderRadius={theme.borderRadius.full}
+          />
+          <Skeleton width="40%" height={24} />
+        </View>
+
+        {/* Title Card Skeleton */}
+        <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.md }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Skeleton width="65%" height={28} />
+            <Skeleton
+              width={80}
+              height={24}
+              borderRadius={theme.borderRadius.small}
+            />
+          </View>
+          <Skeleton width="35%" height={16} />
+        </View>
+
+        {/* Description Card Skeleton */}
+        <View
+          style={{
+            backgroundColor: theme.colors.surface,
+            padding: theme.spacing.md,
+            borderRadius: theme.borderRadius.medium,
+            gap: theme.spacing.sm,
+          }}
+        >
+          <Skeleton width="20%" height={16} />
+          <Skeleton width="100%" height={14} />
+          <Skeleton width="90%" height={14} />
+          <Skeleton width="40%" height={14} />
+        </View>
+
+        {/* Map Skeleton */}
+        <View
+          style={{
+            backgroundColor: theme.colors.surface,
+            padding: theme.spacing.md,
+            borderRadius: theme.borderRadius.medium,
+            gap: theme.spacing.sm,
+          }}
+        >
+          <Skeleton width="30%" height={16} />
+          <Skeleton
+            width="100%"
+            height={160}
+            borderRadius={theme.borderRadius.medium}
+          />
+        </View>
       </View>
-    )
+    );
   }
 
   if (!report) {
     return (
       <View style={styles.loadingWrap}>
-        <Text style={{ color: theme.colors.textSecondary }}>Пријавата не е пронајдена</Text>
+        <Text style={{ color: theme.colors.textSecondary }}>
+          Пријавата не е пронајдена
+        </Text>
       </View>
-    )
+    );
   }
 
-  const statusStyle = STATUS_COLORS[report.status] || DEFAULT_STATUS_THEME
-  const hasLocation = report.latitude != null && report.longitude != null
+  const statusStyle = STATUS_COLORS[report.status] || DEFAULT_STATUS_THEME;
+  const hasLocation = report.latitude != null && report.longitude != null;
 
   return (
     <View style={styles.container}>
       {/* Structural Action Navigation Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={goBack}
+          activeOpacity={0.7}
+        >
           <Ionicons name="arrow-back" size={18} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Пријава #{report.id}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          Пријава #{report.id}
+        </Text>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Core Metadata Card */}
         <View style={styles.titleCard}>
           <View style={styles.titleRow}>
             <Text style={styles.reportTitle}>{report.title}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-              <Text style={[styles.statusText, { color: statusStyle.color }]}>{STATUS_MK[report.status] || report.status}</Text>
+            <View
+              style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}
+            >
+              <Text style={[styles.statusText, { color: statusStyle.color }]}>
+                {STATUS_MK[report.status] || report.status}
+              </Text>
             </View>
           </View>
 
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={13} color={theme.colors.textSecondary} />
-              <Text style={styles.metaText}>{new Date(report.created_at).toLocaleDateString('mk-MK')}</Text>
+              <Ionicons
+                name="calendar-outline"
+                size={13}
+                color={theme.colors.textSecondary}
+              />
+              <Text style={styles.metaText}>
+                {new Date(report.created_at).toLocaleDateString("mk-MK")}
+              </Text>
             </View>
             <View style={styles.metaItem}>
-              <Ionicons name="thumbs-up-outline" size={13} color={theme.colors.textSecondary} />
-              <Text style={styles.metaText}>{report.vote_count ?? 0} гласови</Text>
+              <Ionicons
+                name="thumbs-up-outline"
+                size={13}
+                color={theme.colors.textSecondary}
+              />
+              <Text style={styles.metaText}>
+                {report.vote_count ?? 0} гласови
+              </Text>
             </View>
             {report.is_duplicate && (
               <View style={styles.dupBadge}>
-                <Ionicons name="copy-outline" size={11} color={theme.colors.error} />
+                <Ionicons
+                  name="copy-outline"
+                  size={11}
+                  color={theme.colors.error}
+                />
                 <Text style={styles.dupText}>Дупликат</Text>
               </View>
             )}
@@ -129,11 +247,20 @@ export default function ReportDetailScreen() {
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Локација</Text>
             <View style={styles.mapWrap}>
-              <WebView originWhitelist={['*']} source={{ html: staticMapHtml }} style={styles.map} scrollEnabled={false} />
+              <WebView
+                originWhitelist={["*"]}
+                source={{ html: staticMapHtml }}
+                style={styles.map}
+                scrollEnabled={false}
+              />
             </View>
             {report.address && (
               <View style={styles.addressRow}>
-                <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name="location-outline"
+                  size={14}
+                  color={theme.colors.textSecondary}
+                />
                 <Text style={styles.addressText}>{report.address}</Text>
               </View>
             )}
@@ -144,10 +271,22 @@ export default function ReportDetailScreen() {
         {report.images?.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Фотографии</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.imageScroll}
+            >
               {report.images.map((img: any) => (
-                <TouchableOpacity key={img.id} onPress={() => openImage(`${BASE_URL}${img.image_url}`)} activeOpacity={0.85}>
-                  <Image source={{ uri: `${BASE_URL}${img.image_url}` }} style={styles.imageThumb} resizeMode="cover" />
+                <TouchableOpacity
+                  key={img.id}
+                  onPress={() => openImage(`${BASE_URL}${img.image_url}`)}
+                  activeOpacity={0.85}
+                >
+                  <Image
+                    source={{ uri: `${BASE_URL}${img.image_url}` }}
+                    style={styles.imageThumb}
+                    resizeMode="cover"
+                  />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -156,26 +295,71 @@ export default function ReportDetailScreen() {
 
         {/* Interactive Engagement Toggles */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={[styles.voteBtn, hasVoted && styles.voteBtnActive]} onPress={handleVote} disabled={isVoting} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={[styles.voteBtn, hasVoted && styles.voteBtnActive]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              handleVote();
+            }}
+            disabled={isVoting}
+            activeOpacity={0.8}
+          >
             {isVoting ? (
               <ActivityIndicator size="small" color={theme.colors.accent} />
             ) : (
               <>
-                <Ionicons name={hasVoted ? 'thumbs-up' : 'thumbs-up-outline'} size={18} color={hasVoted ? theme.colors.accent : theme.colors.text} />
-                <Text style={[styles.voteBtnText, hasVoted && styles.voteBtnTextActive]}>{hasVoted ? 'Гласано' : 'Гласај'}</Text>
+                <Ionicons
+                  name={hasVoted ? "thumbs-up" : "thumbs-up-outline"}
+                  size={18}
+                  color={hasVoted ? theme.colors.accent : theme.colors.text}
+                />
+                <Text
+                  style={[
+                    styles.voteBtnText,
+                    hasVoted && styles.voteBtnTextActive,
+                  ]}
+                >
+                  {hasVoted ? "Гласано" : "Гласај"}
+                </Text>
               </>
             )}
           </TouchableOpacity>
 
           {canRate ? (
-            <TouchableOpacity style={styles.rateBtn} onPress={ratingModal.open} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.rateBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                ratingModal.open();
+              }}
+              activeOpacity={0.85}
+            >
               <Ionicons name="star-outline" size={18} color="#FFFFFF" />
               <Text style={styles.rateBtnText}>Оцени</Text>
             </TouchableOpacity>
           ) : report?.is_rated ? (
-            <View style={[styles.rateBtn, { backgroundColor: theme.colors.surfaceVariant || '#1E293B', opacity: 0.8 }]}>
-              <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.success || '#10B981'} />
-              <Text style={[styles.rateBtnText, { color: theme.colors.textSecondary || '#94A3B8' }]}>Оценето</Text>
+            <View
+              style={[
+                styles.rateBtn,
+                {
+                  backgroundColor: theme.colors.surfaceVariant || "#1E293B",
+                  opacity: 0.8,
+                },
+              ]}
+            >
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={18}
+                color={theme.colors.success || "#10B981"}
+              />
+              <Text
+                style={[
+                  styles.rateBtnText,
+                  { color: theme.colors.textSecondary || "#94A3B8" },
+                ]}
+              >
+                Оценето
+              </Text>
             </View>
           ) : null}
         </View>
@@ -196,14 +380,29 @@ export default function ReportDetailScreen() {
       />
 
       {/* Media lightbox modal */}
-      <Modal visible={imageModal.visible} transparent animationType="fade" onRequestClose={closeImage}>
+      <Modal
+        visible={imageModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeImage}
+      >
         <View style={styles.imageOverlay}>
-          <TouchableOpacity style={styles.closeImageBtn} onPress={closeImage} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.closeImageBtn}
+            onPress={closeImage}
+            activeOpacity={0.7}
+          >
             <Ionicons name="close" size={20} color="#FFFFFF" />
           </TouchableOpacity>
-          {selectedImage && <Image source={{ uri: selectedImage }} style={styles.fullImage} resizeMode="contain" />}
+          {selectedImage && (
+            <Image
+              source={{ uri: selectedImage }}
+              style={styles.fullImage}
+              resizeMode="contain"
+            />
+          )}
         </View>
       </Modal>
     </View>
-  )
+  );
 }

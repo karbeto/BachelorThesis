@@ -1,26 +1,27 @@
-import React, { useMemo } from 'react'
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
-import { WebView } from 'react-native-webview'
-import { Ionicons } from '@expo/vector-icons'
-import { useTheme } from '../../context/ThemeContext'
-import { createStyles } from './style'
-import { useMapLogic, STATUS_COLORS } from './logic'
-import { generateMapHtml } from '../../utils/mapTemplate'
-import { MapLegend } from './components/MapLegend'
-import { ReportPreviewCard } from './components/ReportPreviewCard'
+import React, { useMemo } from "react";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { WebView } from "react-native-webview";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
+import { createStyles } from "./style";
+import { useMapLogic, STATUS_COLORS } from "./logic";
+import { generateMapHtml } from "../../utils/mapTemplate";
+import { MapLegend } from "./components/MapLegend";
+import * as Haptics from 'expo-haptics'
+import { ReportPreviewCard } from "./components/ReportPreviewCard";
 
 const FILTER_OPTIONS = [
-  { value: '', label: 'Сите пријави' },
-  { value: 'submitted', label: 'Поднесено' },
-  { value: 'in_progress', label: 'Се решава' },
-  { value: 'resolved', label: 'Решено' },
-  { value: 'rejected', label: 'Одбиено' },
-]
+  { value: "", label: "Сите пријави" },
+  { value: "submitted", label: "Поднесено" },
+  { value: "in_progress", label: "Се решава" },
+  { value: "resolved", label: "Решено" },
+  { value: "rejected", label: "Одбиено" },
+];
 
 export default function MapScreen() {
-  const { theme } = useTheme()
-  const styles = createStyles(theme)
-  
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
+
   const {
     reports,
     isLoading,
@@ -33,28 +34,30 @@ export default function MapScreen() {
     handleCardPress,
     handleSubmitPress,
     handleFilterChange,
-  } = useMapLogic()
+  } = useMapLogic();
 
-  const mapHtml = useMemo(() => generateMapHtml(reports), [reports])
+  const mapHtml = useMemo(() => generateMapHtml(reports), [reports]);
 
   const handleMapMessage = (event: any) => {
     try {
-      const data = JSON.parse(event.nativeEvent.data)
+      const data = JSON.parse(event.nativeEvent.data);
       if (data?.id) {
-        const foundReport = reports.find((r: any) => String(r.id) === String(data.id))
-        if (foundReport) handleMarkerPress(foundReport)
+        const foundReport = reports.find(
+          (r: any) => String(r.id) === String(data.id),
+        );
+        if (foundReport) handleMarkerPress(foundReport);
       }
     } catch (e) {
-      console.warn("Error parsing map click action data:", e)
+      console.warn("Error parsing map click action data:", e);
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
       {/* WebView Container Layer */}
       <View style={styles.map}>
         <WebView
-          originWhitelist={['*']}
+          originWhitelist={["*"]}
           source={{ html: mapHtml }}
           onMessage={handleMapMessage}
           style={{ flex: 1 }}
@@ -78,11 +81,18 @@ export default function MapScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.filterBtn, showFilters && { backgroundColor: theme.colors.primary }]}
+          style={[
+            styles.filterBtn,
+            showFilters && { backgroundColor: theme.colors.primary },
+          ]}
           onPress={() => setShowFilters(!showFilters)}
           activeOpacity={0.8}
         >
-          <Ionicons name="filter" size={18} color={showFilters ? '#FFFFFF' : theme.colors.text} />
+          <Ionicons
+            name="filter"
+            size={18}
+            color={showFilters ? "#FFFFFF" : theme.colors.text}
+          />
         </TouchableOpacity>
       </View>
 
@@ -92,19 +102,38 @@ export default function MapScreen() {
           {FILTER_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.value}
-              style={[styles.filterItem, filterStatus === opt.value && styles.filterItemActive]}
+              style={[
+                styles.filterItem,
+                filterStatus === opt.value && styles.filterItemActive,
+              ]}
               onPress={() => handleFilterChange(opt.value)}
               activeOpacity={0.7}
             >
-              <View style={[
-                styles.filterDot,
-                { backgroundColor: opt.value ? STATUS_COLORS[opt.value] : theme.colors.textSecondary }
-              ]} />
-              <Text style={[styles.filterText, filterStatus === opt.value && styles.filterTextActive]}>
+              <View
+                style={[
+                  styles.filterDot,
+                  {
+                    backgroundColor: opt.value
+                      ? STATUS_COLORS[opt.value]
+                      : theme.colors.textSecondary,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.filterText,
+                  filterStatus === opt.value && styles.filterTextActive,
+                ]}
+              >
                 {opt.label}
               </Text>
               {filterStatus === opt.value && (
-                <Ionicons name="checkmark" size={14} color={theme.colors.primary} style={{ marginLeft: 'auto' }} />
+                <Ionicons
+                  name="checkmark"
+                  size={14}
+                  color={theme.colors.primary}
+                  style={{ marginLeft: "auto" }}
+                />
               )}
             </TouchableOpacity>
           ))}
@@ -125,9 +154,16 @@ export default function MapScreen() {
       )}
 
       {/* Action Submission Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={handleSubmitPress} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          handleSubmitPress();
+        }}
+        activeOpacity={0.85}
+      >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
-  )
+  );
 }

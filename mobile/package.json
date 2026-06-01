@@ -17,6 +17,7 @@
     "axios": "^1.16.1",
     "expo": "~55.0.24",
     "expo-camera": "~55.0.18",
+    "expo-haptics": "^56.0.3",
     "expo-image-picker": "~55.0.20",
     "expo-location": "~55.1.10",
     "expo-notifications": "~55.0.23",
