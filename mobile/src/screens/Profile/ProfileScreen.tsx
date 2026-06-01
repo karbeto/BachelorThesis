@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, ScrollView, Modal, Switch } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import * as Haptics from 'expo-haptics'
 import { useTheme } from '../../context/ThemeContext'
 import { createStyles } from './style'
 import { useProfileLogic } from './logic'
@@ -36,40 +37,40 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* Main Clean Identity Header */}
+        {/* Pure Typographic Identity Header */}
         <View style={styles.hero}>
-          <Text style={styles.userName}>{user.full_name}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{getRoleLabel(user.role)}</Text>
+          <View style={styles.heroDetails}>
+            <Text style={styles.userName} numberOfLines={1}>{user.full_name}</Text>
+            <Text style={styles.userEmail} numberOfLines={1}>{user.email}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleText}>{getRoleLabel(user.role)}</Text>
+            </View>
           </View>
         </View>
 
-        {/* User Engagement Metrics Panel */}
+        {/* Left-Aligned Standalone Metric Cards */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats.total}</Text>
             <Text style={styles.statLabel}>Вкупно</Text>
           </View>
-          <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: theme.colors.success }]}>{stats.resolved}</Text>
             <Text style={styles.statLabel}>Решено</Text>
           </View>
-          <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: theme.colors.warning }]}>{stats.pending}</Text>
             <Text style={styles.statLabel}>Во тек</Text>
           </View>
         </View>
 
-        {/* Global System Preferences List */}
+        {/* Floating Settings Preferences List */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Поставки</Text>
           <View style={styles.sectionCard}>
             <View style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: theme.colors.info + '20' }]}>
-                <Ionicons name={isDarkMode ? 'moon' : 'sunny'} size={18} color={theme.colors.info} />
+              <View style={[styles.rowIcon, { backgroundColor: theme.colors.primary + '12' }]}>
+                <Ionicons name={isDarkMode ? 'moon' : 'sunny'} size={20} color={theme.colors.primary} />
               </View>
               <View style={styles.rowContent}>
                 <Text style={styles.rowLabel}>Темна тема</Text>
@@ -77,15 +78,18 @@ export default function ProfileScreen() {
               </View>
               <Switch
                 value={isDarkMode}
-                onValueChange={toggleTheme}
-                trackColor={{ false: theme.colors.border, true: theme.colors.accent }}
+                onValueChange={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                  toggleTheme()
+                }}
+                trackColor={{ false: theme.colors.surfaceVariant, true: theme.colors.primary }}
                 thumbColor="#FFFFFF"
               />
             </View>
 
-            <View style={[styles.row, styles.rowLast]}>
-              <View style={[styles.rowIcon, { backgroundColor: theme.colors.accent + '20' }]}>
-                <Ionicons name="call-outline" size={18} color={theme.colors.accent} />
+            <View style={styles.row}>
+              <View style={[styles.rowIcon, { backgroundColor: theme.colors.accent + '12' }]}>
+                <Ionicons name="call-outline" size={20} color={theme.colors.accent} />
               </View>
               <View style={styles.rowContent}>
                 <Text style={styles.rowLabel}>Телефон</Text>
@@ -95,41 +99,58 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Account Security Management Row */}
+        {/* Account Security Row Block */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Безбедност</Text>
           <View style={styles.sectionCard}>
-            <TouchableOpacity style={[styles.row, styles.rowLast]} onPress={passwordModal.open} activeOpacity={0.7}>
-              <View style={[styles.rowIcon, { backgroundColor: theme.colors.warning + '20' }]}>
-                <Ionicons name="lock-closed-outline" size={18} color={theme.colors.warning} />
+            <TouchableOpacity 
+              style={styles.row} 
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                passwordModal.open()
+              }} 
+              activeOpacity={0.7}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: theme.colors.warning + '12' }]}>
+                <Ionicons name="lock-closed-outline" size={20} color={theme.colors.warning} />
               </View>
               <View style={styles.rowContent}>
                 <Text style={styles.rowLabel}>Промени лозинка</Text>
                 <Text style={styles.rowSubtitle}>Ажурирај ја твојата лозинка</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} style={styles.rowRight} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Disconnection Sheet Row */}
+        {/* Disconnection Warning Block */}
         <View style={styles.section}>
           <View style={styles.sectionCard}>
-            <TouchableOpacity style={styles.logoutRow} onPress={logoutModal.open} activeOpacity={0.7}>
+            <TouchableOpacity 
+              style={styles.logoutRow} 
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+                logoutModal.open()
+              }} 
+              activeOpacity={0.7}
+            >
               <View style={[styles.rowIcon, { backgroundColor: theme.colors.error + '15' }]}>
-                <Ionicons name="log-out-outline" size={18} color={theme.colors.error} />
+                <Ionicons name="log-out-outline" size={20} color={theme.colors.error} />
               </View>
               <Text style={styles.logoutLabel}>Одјави се</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.error} />
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.error} style={styles.rowRight} />
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
 
-      {/* Extracted Change Password Form Overlay */}
+      {/* Password Management Overlay Sheet Component */}
       <PasswordModal
         visible={passwordModal.visible}
-        onClose={passwordModal.close}
+        onClose={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+          passwordModal.close()
+        }}
         theme={theme}
         styles={styles}
         focused={focused}
@@ -144,16 +165,19 @@ export default function ProfileScreen() {
         showConfirm={showConfirm}
         setShowConfirm={setShowConfirm}
         changingPassword={changingPassword}
-        onSubmit={handleChangePassword}
+        onSubmit={() => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+          handleChangePassword()
+        }}
       />
 
-      {/* Disconnection Warning Alert sheet */}
+      {/* Disconnection Confirmation Bottom Sheet */}
       <Modal visible={logoutModal.visible} transparent animationType="slide" onRequestClose={logoutModal.close}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={logoutModal.close}>
           <TouchableOpacity style={styles.modal} activeOpacity={1} onPress={() => {}}>
             <View style={styles.modalHandle} />
             <View style={[styles.rowIcon, {
-              backgroundColor: theme.colors.error + '15',
+              backgroundColor: theme.colors.error + '12',
               alignSelf: 'center',
               width: 56,
               height: 56,
@@ -164,11 +188,26 @@ export default function ProfileScreen() {
             </View>
             <Text style={styles.logoutModalTitle}>Одјави се?</Text>
             <Text style={styles.logoutModalSubtitle}>Дали сте сигурни дека сакате да се одјавите од апликацијата?</Text>
+            
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={logoutModal.close} activeOpacity={0.7}>
+              <TouchableOpacity 
+                style={styles.cancelBtn} 
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                  logoutModal.close()
+                }} 
+                activeOpacity={0.7}
+              >
                 <Text style={styles.cancelBtnText}>Откажи</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.dangerBtn} onPress={handleLogout} activeOpacity={0.85}>
+              <TouchableOpacity 
+                style={styles.dangerBtn} 
+                onPress={() => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+                  handleLogout()
+                }} 
+                activeOpacity={0.85}
+              >
                 <Text style={styles.dangerBtnText}>Одјави се</Text>
               </TouchableOpacity>
             </View>

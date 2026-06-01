@@ -1,3 +1,4 @@
+import React from 'react'
 import {
   View,
   Text,
@@ -10,7 +11,7 @@ import {
 import { useTheme } from '../../../context/ThemeContext'
 import { createStyles } from './style'
 import { useLoginLogic } from './logic'
-import { CustomInput } from '../../../components/ui/CustomInput' // Adjust path as needed
+import { CustomInput } from '../../../components/ui/CustomInput' 
 
 export default function LoginScreen({ navigation }: any) {
   const { theme } = useTheme()
@@ -24,76 +25,79 @@ export default function LoginScreen({ navigation }: any) {
   } = useLoginLogic(navigation)
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        {/* Logo Section */}
-        <View style={styles.logoWrap}>
-          <View style={styles.logoCircle}>
-            <View style={styles.logoInner} />
+        <ScrollView
+          style={{ flex: 1, backgroundColor: theme.colors.background }}
+          contentContainerStyle={[styles.scroll, { flexGrow: 1 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo Section */}
+          <View style={styles.logoWrap}>
+            <View style={styles.logoCircle}>
+              <View style={styles.logoInner} />
+            </View>
+            <Text style={styles.title}>Граѓански Активизам</Text>
+            <Text style={styles.subtitle}>Пријави се во твојот акаунт</Text>
           </View>
-          <Text style={styles.title}>Граѓански Активизам</Text>
-          <Text style={styles.subtitle}>Пријави се во твојот акаунт</Text>
-        </View>
 
-        {/* Form Section */}
-        <View style={styles.form}>
-          <CustomInput
-            label="Е-пошта"
-            iconName="mail-outline"
-            placeholder="vasiot@email.mk"
-            value={email.value}
-            onChangeText={email.onChange}
-            error={email.error}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            theme={theme}
-            styles={styles}
-          />
+          {/* Form Section */}
+          <View style={styles.form}>
+            <CustomInput
+              label="Е-пошта"
+              iconName="mail-outline"
+              placeholder="vasiot@email.mk"
+              value={email.value}
+              onChangeText={email.onChange}
+              error={email.error}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+              theme={theme}
+              styles={styles}
+            />
 
           <CustomInput
-            label="Лозинка"
-            iconName="lock-closed-outline"
-            placeholder="••••••••"
-            value={password.value}
-            onChangeText={password.onChange}
-            error={password.error}
-            autoComplete="password"
-            isPassword={true}
-            theme={theme}
-            styles={styles}
-          />
+              label="Лозинка"
+              iconName="lock-closed-outline"
+              placeholder="••••••••"
+              value={password.value}
+              onChangeText={password.onChange}
+              error={password.error}
+              autoComplete="password"
+              isPassword={true}
+              theme={theme}
+              styles={styles}
+            />
 
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.buttonText}>Најави се</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.buttonText}>Најави се</Text>
+              )}
+            </TouchableOpacity>
+          </View>
 
-        {/* Footer Section */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Немаш акаунт?</Text>
-          <TouchableOpacity onPress={goToRegister} activeOpacity={0.7}>
-            <Text style={styles.footerLink}>Регистрирај се</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {/* Footer Section */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Немаш акаунт?</Text>
+            <TouchableOpacity onPress={goToRegister} activeOpacity={0.7}>
+              <Text style={styles.footerLink}>Регистрирај се</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   )
 }

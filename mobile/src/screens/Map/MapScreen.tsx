@@ -7,7 +7,7 @@ import { createStyles } from "./style";
 import { useMapLogic, STATUS_COLORS } from "./logic";
 import { generateMapHtml } from "../../utils/mapTemplate";
 import { MapLegend } from "./components/MapLegend";
-import * as Haptics from 'expo-haptics'
+import * as Haptics from "expo-haptics";
 import { ReportPreviewCard } from "./components/ReportPreviewCard";
 
 const FILTER_OPTIONS = [
@@ -85,7 +85,10 @@ export default function MapScreen() {
             styles.filterBtn,
             showFilters && { backgroundColor: theme.colors.primary },
           ]}
-          onPress={() => setShowFilters(!showFilters)}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowFilters(!showFilters);
+          }}
           activeOpacity={0.8}
         >
           <Ionicons
