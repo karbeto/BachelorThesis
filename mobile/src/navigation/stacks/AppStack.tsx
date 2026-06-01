@@ -21,7 +21,7 @@ export default function AppStack() {
         name="SubmitReport"
         component={SubmitReportScreen}
         options={{
-          headerShown: true,
+          headerShown: false,
           title: 'Нова пријава',
           headerBackTitle: '',
           headerStyle: { backgroundColor: theme.colors.surface },
@@ -32,7 +32,7 @@ export default function AppStack() {
         name="ReportDetail"
         component={ReportDetailScreen}
         options={{
-          headerShown: true,
+          headerShown: false,
           title: 'Детали',
           headerBackTitle: '',
           headerStyle: { backgroundColor: theme.colors.surface },
@@ -43,7 +43,7 @@ export default function AppStack() {
         name="SubmitIdea"
         component={SubmitIdeaScreen}
         options={{
-          headerShown: true,
+          headerShown: false,
           title: 'Нова идеја',
           headerBackTitle: '',
           headerStyle: { backgroundColor: theme.colors.surface },

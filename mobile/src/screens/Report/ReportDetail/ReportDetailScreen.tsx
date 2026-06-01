@@ -167,12 +167,17 @@ export default function ReportDetailScreen() {
             )}
           </TouchableOpacity>
 
-          {canRate && (
+          {canRate ? (
             <TouchableOpacity style={styles.rateBtn} onPress={ratingModal.open} activeOpacity={0.85}>
               <Ionicons name="star-outline" size={18} color="#FFFFFF" />
               <Text style={styles.rateBtnText}>Оцени</Text>
             </TouchableOpacity>
-          )}
+          ) : report?.is_rated ? (
+            <View style={[styles.rateBtn, { backgroundColor: theme.colors.surfaceVariant || '#1E293B', opacity: 0.8 }]}>
+              <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.success || '#10B981'} />
+              <Text style={[styles.rateBtnText, { color: theme.colors.textSecondary || '#94A3B8' }]}>Оценето</Text>
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 

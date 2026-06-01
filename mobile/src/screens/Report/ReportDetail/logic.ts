@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRoute, useNavigation } from '@react-navigation/native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getReport, voteReport, unvoteReport, rateReport } from '../../../api/reports'
@@ -21,24 +21,48 @@ export function useReportDetailLogic() {
   const [ratingComment, setRatingComment] = useState('')
   const [hasVoted, setHasVoted] = useState(false)
 
+  // Fetch report details
   const { data: report, isLoading } = useQuery({
     queryKey: ['report', id],
     queryFn: () => getReport(id),
   })
 
+  // Sync state accurately whenever the cache query context modifies
+  useEffect(() => {
+    if (report) {
+      setHasVoted(!!report.is_voted_by_me)
+    }
+  }, [report])
+
   const voteMutation = useMutation({
     mutationFn: () => (hasVoted ? unvoteReport(id) : voteReport(id)),
-    onSuccess: () => {
+    // Optimistic cache update logic block applied here
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['report', id] })
+      const previousReport = queryClient.getQueryData(['report', id])
+
+      // Flip state immediately for immediate crisp layout visual response
       setHasVoted(!hasVoted)
+
+      return { previousReport }
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report', id] })
       queryClient.invalidateQueries({ queryKey: ['reports-map'] })
       queryClient.invalidateQueries({ queryKey: ['my-reports'] })
+      
       Toast.show({
         type: 'success',
-        text1: hasVoted ? 'Гласот е отстранет' : 'Гласот е додаден ✓',
+        text1: hasVoted ? 'Гласот е додаден ✓' : 'Гласот е отстранет',
       })
     },
-    onError: (err: any) => {
+    onError: (err: any, _, context) => {
+      // Revert accurately if server pipeline experiences drops
+      if (context?.previousReport) {
+        queryClient.setQueryData(['report', id], context.previousReport)
+      }
+      setHasVoted(hasVoted)
+
       Toast.show({
         type: 'error',
         text1: err.response?.data?.detail || 'Грешка при гласање',
@@ -63,6 +87,12 @@ export function useReportDetailLogic() {
     },
   })
 
+  // Check if user is eligible to submit rating details
+  const canRate = 
+    user?.id === report?.user_id && 
+    report?.status === 'resolved' && 
+    !report?.is_rated
+
   return {
     report,
     isLoading,
@@ -82,9 +112,18 @@ export function useReportDetailLogic() {
       setSelectedImage(null)
       imageModal.close()
     },
-    canRate: user?.id === report?.user_id && report?.status === 'resolved',
-    handleVote: () => voteMutation.mutate(),
-    handleRating: () => ratingMutation.mutate(),
+    canRate,
+    handleVote: () => {
+      if (voteMutation.isPending) return
+      voteMutation.mutate()
+    },
+    handleRating: () => {
+      if (rating === 0) {
+        Toast.show({ type: 'error', text1: 'Изберете оценка со ѕвездички' })
+        return
+      }
+      ratingMutation.mutate()
+    },
     isVoting: voteMutation.isPending,
     isRating: ratingMutation.isPending,
     goBack: () => navigation.goBack(),
