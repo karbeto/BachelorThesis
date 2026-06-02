@@ -133,6 +133,8 @@ async def build_report_response(
     )
 
 
+from geoalchemy2 import Geography
+
 async def find_duplicate(
     latitude: float,
     longitude: float,
@@ -145,9 +147,10 @@ async def find_duplicate(
             Report.category_id == category_id,
             Report.is_duplicate == False,  # noqa: E712
             Report.status != ReportStatus.rejected,
-            ST_DWithin(
-                Report.location,
-                ST_GeomFromText(point_wkt, 4326),
+            # Force conversion to Geography for accurate metric bounds
+            func.ST_DWithin(
+                func.cast(Report.location, Geography),
+                func.cast(ST_GeomFromText(point_wkt, 4326), Geography),
                 DUPLICATE_RADIUS_METERS,
             ),
         ).order_by(Report.created_at.asc()).limit(1)

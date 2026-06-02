@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { Alert, Platform } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { submitReport } from '../../../api/reports'
+import { getMunicipalities } from '../../../api/municipalities'
 import { useFormField } from '../../../utils/formHooks'
 import { useNavigation } from '@react-navigation/native'
 import Toast from 'react-native-toast-message'
@@ -16,12 +17,23 @@ interface FormDataFile {
   type: string
 }
 
+interface Municipality {
+  id: number
+  name: string
+}
+
 const validateTitle = (value: string) =>
   value.trim().length >= 3 ? undefined : 'Насловот мора да има минимум 3 карактери'
 
 export function useSubmitReportLogic() {
   const navigation = useNavigation<any>()
   const queryClient = useQueryClient()
+
+  // Fetch all municipalities from your backend
+  const { data: municipalities } = useQuery<Municipality[]>({
+    queryKey: ['municipalities'],
+    queryFn: getMunicipalities,
+  })
 
   const [step, setStep] = useState<SubmitStep>('photo')
   const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null)
@@ -30,7 +42,9 @@ export function useSubmitReportLogic() {
     longitude: number
   } | null>(null)
   const [address, setAddress] = useState<string>('')
-  const [municipalityId] = useState<number>(1) // default Veles
+  
+  // Base fallback ID (e.g., Skopje overall, or Centar)
+  const [municipalityId, setMunicipalityId] = useState<number>(2) 
   const [locating, setLocating] = useState(false)
 
   const title = useFormField<string>('', validateTitle)
@@ -41,6 +55,17 @@ export function useSubmitReportLogic() {
       getLocation()
     }
   }, [step])
+
+  // Helper function to normalize Macedonian cyrillic/latin variations if needed
+  const normalizeString = (str: string) => {
+    return str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Removes accents/diacritics (e.g., š -> s)
+      .replace(/gj/g, 'g')
+      .replace(/ch/g, 'c')
+      .trim()
+  }
 
   const getLocation = async () => {
     setLocating(true)
@@ -74,6 +99,32 @@ export function useSubmitReportLogic() {
           .join(' ')
         
         setAddress(computedAddress || `${currentCoords.latitude.toFixed(5)}, ${currentCoords.longitude.toFixed(5)}`)
+        
+        // --- MULTI-MUNICIPALITY DETECTOR ---
+        if (municipalities) {
+          // Combine all potential spatial text fields into one searchable block
+          const spatialPool = normalizeString(
+            `${g.district || ''} ${g.subregion || ''} ${g.city || ''} ${g.street || ''}`
+          )
+
+          // Find which DB municipality name is mentioned inside our pool
+          const matchedMun = municipalities.find((m) => {
+            const normalizedDbName = normalizeString(m.name)
+            return spatialPool.includes(normalizedDbName)
+          })
+          
+          if (matchedMun) {
+            setMunicipalityId(matchedMun.id)
+          } else {
+            // Fallback: If it's general "Skopje" but district didn't match, 
+            // look for any catch-all Skopje entry in your database
+            const skopjeFallback = municipalities.find(m => 
+              normalizeString(m.name).includes('skopje')
+            )
+            if (skopjeFallback) setMunicipalityId(skopjeFallback.id)
+          }
+        }
+        // ------------------------------------
       }
     } catch (error) {
       Toast.show({ type: 'error', text1: 'Не може да се земе локацијата' })
