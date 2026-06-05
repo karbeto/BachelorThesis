@@ -1,29 +1,10 @@
-import { Lightbulb, ThumbsUp } from 'lucide-react'
-import {
-  useIdeasLogic,
-  STATUS_OPTIONS,
-  STATUS_UPDATE_OPTIONS,
-  STATUS_MK,
-  STATUS_COLORS,
-} from './logic'
-import { styles } from './style'
-
-function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_COLORS[status] || { bg: '#F1F5F9', color: '#64748B' }
-  return (
-    <span style={{
-      fontSize: 12,
-      fontWeight: 500,
-      padding: '3px 10px',
-      borderRadius: 20,
-      background: s.bg,
-      color: s.color,
-      whiteSpace: 'nowrap' as const,
-    }}>
-      {STATUS_MK[status] || status}
-    </span>
-  )
-}
+import React from 'react';
+import { Lightbulb } from 'lucide-react';
+import { useIdeasLogic } from './logic';
+import { styles } from './style';
+import { IdeaFilters } from './components/IdeaFilters';
+import { IdeaCard } from './components/IdeaCard';
+import { IdeaStatusModal } from './components/IdeaStatusModal';
 
 export default function IdeasPage() {
   const {
@@ -38,7 +19,7 @@ export default function IdeasPage() {
     closeModal,
     handleStatusUpdate,
     isUpdating,
-  } = useIdeasLogic()
+  } = useIdeasLogic();
 
   return (
     <div style={styles.root}>
@@ -62,23 +43,15 @@ export default function IdeasPage() {
       </div>
 
       {/* Filters */}
-      <div style={styles.filtersRow}>
-        <select
-          style={styles.select}
-          value={filters.status}
-          onChange={(e) => handleFilterChange('status', e.target.value)}
-        >
-          {STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-      </div>
+      <IdeaFilters
+        value={filters.status}
+        onFilterChange={(val) => handleFilterChange('status', val)}
+        styles={styles}
+      />
 
-      {/* Cards grid */}
+      {/* Grid Container */}
       <div style={styles.grid}>
-        {isLoading && (
-          <div style={styles.loadingState}>Се вчитува...</div>
-        )}
+        {isLoading && <div style={styles.loadingState}>Се вчитува...</div>}
 
         {!isLoading && ideas?.length === 0 && (
           <div style={styles.emptyState}>
@@ -90,72 +63,29 @@ export default function IdeasPage() {
           </div>
         )}
 
-        {ideas?.map((idea: any) => (
-          <div key={idea.id} className="idea-card" style={styles.ideaCard}>
-            <div style={styles.ideaCardTop}>
-              <span style={styles.ideaTitle}>{idea.title}</span>
-              <StatusBadge status={idea.status} />
-            </div>
-
-            <p style={styles.ideaDesc}>{idea.description}</p>
-
-            <div style={styles.ideaFooter}>
-              <div style={styles.votePill}>
-                <ThumbsUp size={13} />
-                {idea.vote_count ?? 0}
-              </div>
-              <span style={styles.dateText}>
-                {new Date(idea.created_at).toLocaleDateString('mk-MK')}
-              </span>
-            </div>
-
-            <button
-              className="action-btn"
-              style={styles.actionBtn}
-              onClick={() => openModal(idea)}
-            >
-              Промени статус
-            </button>
-          </div>
-        ))}
+        {!isLoading &&
+          ideas?.map((idea: any) => (
+            <IdeaCard
+              key={idea.id}
+              idea={idea}
+              onOpenModal={openModal}
+              styles={styles}
+            />
+          ))}
       </div>
 
-      {/* Status modal */}
+      {/* Active Selection Overlay */}
       {selectedIdea && (
-        <div style={styles.overlay} onClick={closeModal}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalTitle}>Промени статус</div>
-            <div style={styles.modalSubtitle}>
-              {selectedIdea.title}
-            </div>
-
-            <label style={styles.modalLabel}>Нов статус</label>
-            <select
-              style={styles.modalSelect}
-              value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value)}
-            >
-              {STATUS_UPDATE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-
-            <div style={styles.modalActions}>
-              <button className="cancel-btn" style={styles.cancelBtn} onClick={closeModal}>
-                Откажи
-              </button>
-              <button
-                className="confirm-btn"
-                style={styles.confirmBtn}
-                onClick={handleStatusUpdate}
-                disabled={isUpdating}
-              >
-                {isUpdating ? 'Се зачувува...' : 'Зачувај'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <IdeaStatusModal
+          idea={selectedIdea}
+          newStatus={newStatus}
+          isUpdating={isUpdating}
+          setNewStatus={setNewStatus}
+          onClose={closeModal}
+          onConfirm={handleStatusUpdate}
+          styles={styles}
+        />
       )}
     </div>
-  )
+  );
 }

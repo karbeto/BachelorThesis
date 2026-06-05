@@ -19,3 +19,30 @@ export const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   resolved: { bg: '#F0FDF4', color: '#22C55E' },
   rejected: { bg: '#FEF2F2', color: '#EF4444' },
 };
+
+// 2. IDEAS CONFIGURATIONS
+export const IDEA_STATUS_MK: Record<string, string> = {
+  open: 'Отворено',
+  under_review: 'Се разгледува',
+  accepted: 'Прифатено',
+  rejected: 'Одбиено',
+};
+
+export const IDEA_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  open: { bg: '#F0F9FF', color: '#38BDF8' },
+  under_review: { bg: '#FFFBEB', color: '#F59E0B' },
+  accepted: { bg: '#F0FDF4', color: '#22C55E' },
+  rejected: { bg: '#FEF2F2', color: '#EF4444' },
+};
+
+export const IDEA_STATUS_UPDATE_OPTIONS = [
+  { value: 'open', label: 'Отворено' },
+  { value: 'under_review', label: 'Се разгледува' },
+  { value: 'accepted', label: 'Прифатено' },
+  { value: 'rejected', label: 'Одбиено' },
+];
+
+export const IDEA_STATUS_OPTIONS = [
+  { value: '', label: 'Сите статуси' },
+  ...IDEA_STATUS_UPDATE_OPTIONS,
+];
