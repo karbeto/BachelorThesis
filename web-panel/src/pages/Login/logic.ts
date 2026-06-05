@@ -10,7 +10,6 @@ export function useLoginLogic() {
   
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,15 +27,13 @@ export function useLoginLogic() {
     }
   };
 
-  const updateField = (field: string, value: string) => {
+  const updateField = (field: keyof typeof form, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
   return {
     form,
     loading,
-    focused,
-    setFocused,
     handleSubmit,
     updateField
   };
