@@ -50,6 +50,8 @@ class ReportResponse(BaseModel):
     longitude: float | None = None
     images: list[ReportImageResponse] = []
     vote_count: int = 0
+    is_voted_by_me: bool = False 
+    is_rated: bool = False        
     created_at: datetime
     updated_at: datetime
 

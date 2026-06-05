@@ -15,6 +15,7 @@ from app.models.report import Report, ReportStatus
 from app.models.report_image import ReportImage
 from app.models.report_status_history import ReportStatusHistory
 from app.models.report_vote import ReportVote
+from app.models.report_rating import ReportRating  # Added to check report_ratings table
 from app.models.municipality_category_routing import MunicipalityCategoryRouting
 from app.models.category import Category
 from app.models.municipality import Municipality
@@ -29,6 +30,7 @@ from app.schemas.report import (
 from app.core.dependencies import get_current_user, get_current_admin
 from app.services.ai import classify_report, encode_image_to_base64
 from app.services.email import send_report_email, send_status_update_email
+from geoalchemy2 import Geography
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -69,8 +71,9 @@ async def get_report_images(
     return list(result.scalars().all())
 
 
+# UPDATED: Added current_user_id to check relationship tables
 async def build_report_response(
-    report: Report, db: AsyncSession
+    report: Report, db: AsyncSession, current_user_id: int | None = None
 ) -> ReportResponse:
     vote_count = await get_vote_count(report.id, db)
     images = await get_report_images(report.id, db)
@@ -109,6 +112,29 @@ async def build_report_response(
         )
         user_full_name = user_result.scalar_one_or_none()
 
+    # CHECK VOTES AND RATINGS FOR CURRENT USER
+    is_voted_by_me = False
+    is_rated = False
+    
+    if current_user_id:
+        # Check if user voted
+        vote_check = await db.execute(
+            select(1).where(
+                ReportVote.report_id == report.id,
+                ReportVote.user_id == current_user_id
+            )
+        )
+        is_voted_by_me = vote_check.scalar_one_or_none() is not None
+
+        # Check if user rated
+        rating_check = await db.execute(
+            select(1).where(
+                ReportRating.report_id == report.id,
+                ReportRating.user_id == current_user_id
+            )
+        )
+        is_rated = rating_check.scalar_one_or_none() is not None
+
     return ReportResponse(
         id=report.id,
         title=report.title,
@@ -128,12 +154,12 @@ async def build_report_response(
         longitude=longitude,
         images=[ReportImageResponse.model_validate(img) for img in images],
         vote_count=vote_count,
+        is_voted_by_me=is_voted_by_me, # Injected
+        is_rated=is_rated,             # Injected
         created_at=report.created_at,
         updated_at=report.updated_at,
     )
 
-
-from geoalchemy2 import Geography
 
 async def find_duplicate(
     latitude: float,
@@ -147,7 +173,6 @@ async def find_duplicate(
             Report.category_id == category_id,
             Report.is_duplicate == False,  # noqa: E712
             Report.status != ReportStatus.rejected,
-            # Force conversion to Geography for accurate metric bounds
             func.ST_DWithin(
                 func.cast(Report.location, Geography),
                 func.cast(ST_GeomFromText(point_wkt, 4326), Geography),
@@ -324,10 +349,9 @@ async def submit_report(
     )
 
     await db.commit()
-    
     await db.refresh(report)
     
-    return await build_report_response(report, db)
+    return await build_report_response(report, db, current_user.id)
 
 
 @router.get("/my", response_model=list[ReportResponse])
@@ -341,7 +365,7 @@ async def my_reports(
         .order_by(Report.created_at.desc())
     )
     reports = result.scalars().all()
-    return [await build_report_response(r, db) for r in reports]
+    return [await build_report_response(r, db, current_user.id) for r in reports]
 
 
 @router.get("/", response_model=list[ReportResponse])
@@ -352,6 +376,7 @@ async def list_reports(
     skip: int = 0,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     query = select(Report).where(Report.is_duplicate == False)  # noqa: E712
     
@@ -366,16 +391,17 @@ async def list_reports(
 
     result = await db.execute(query)
     reports = result.scalars().all()
-    return [await build_report_response(r, db) for r in reports]
+    return [await build_report_response(r, db, current_user.id) for r in reports]
 
 
 @router.get("/{report_id}", response_model=ReportResponse)
 async def get_report(
     report_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user), 
 ):
     report = await get_report_or_404(report_id, db)
-    return await build_report_response(report, db)
+    return await build_report_response(report, db, current_user.id)
 
 
 @router.patch("/{report_id}/status", response_model=ReportResponse)
@@ -445,7 +471,7 @@ async def update_report_status(
 
     await db.commit()
     await db.refresh(report)
-    return await build_report_response(report, db)
+    return await build_report_response(report, db, current_user.id)
 
 
 @router.get(

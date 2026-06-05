@@ -25,20 +25,32 @@ export function useReportDetailLogic() {
   const [rating, setRating] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
 
-  // Fetch report details
   const { data: report, isLoading } = useQuery({
     queryKey: ["report", id],
     queryFn: () => getReport(id),
   });
 
-  // State is derived directly from the server-fetched report object
   const hasVoted = !!report?.is_voted_by_me;
 
   const voteMutation = useMutation({
     mutationFn: () => (hasVoted ? unvoteReport(id) : voteReport(id)),
-    onSuccess: () => {
-      // Invalidate only after a successful server response
-      queryClient.invalidateQueries({ queryKey: ["report", id] });
+    onSuccess: (responseData) => {
+      queryClient.setQueryData(["report", id], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        if (responseData && typeof responseData === "object" && "is_voted_by_me" in responseData) {
+          return responseData;
+        }
+
+        return {
+          ...oldData,
+          is_voted_by_me: !oldData.is_voted_by_me,
+          vote_count: oldData.is_voted_by_me 
+            ? Math.max(0, (oldData.vote_count || 1) - 1) 
+            : (oldData.vote_count || 0) + 1,
+        };
+      });
+
       queryClient.invalidateQueries({ queryKey: ["reports-map"] });
       queryClient.invalidateQueries({ queryKey: ["my-reports"] });
       
@@ -57,9 +69,20 @@ export function useReportDetailLogic() {
 
   const ratingMutation = useMutation({
     mutationFn: () => rateReport(id, rating, ratingComment || undefined),
-    onSuccess: () => {
-      Toast.show({ type: "success", text1: "Оценката е зачувана ✓" });
-      queryClient.invalidateQueries({ queryKey: ["report", id] });
+    onSuccess: (responseData) => {
+      Toast.show({ type: "success", text1: "Оцената е зачувана ✓" });
+      
+      queryClient.setQueryData(["report", id], (oldData: any) => {
+        if (!oldData) return oldData;
+        if (responseData && typeof responseData === "object" && "is_rated" in responseData) {
+          return responseData;
+        }
+        return {
+          ...oldData,
+          is_rated: true,
+        };
+      });
+
       ratingModal.close();
       setRating(0);
       setRatingComment("");
