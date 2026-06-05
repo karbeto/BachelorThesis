@@ -1,78 +1,57 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
-import client from '../../api/client'
-
-export const STATUS_MK: Record<string, string> = {
-  open: 'Отворено',
-  under_review: 'Се разгледува',
-  accepted: 'Прифатено',
-  rejected: 'Одбиено',
-}
-
-export const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  open: { bg: '#F0F9FF', color: '#38BDF8' },
-  under_review: { bg: '#FFFBEB', color: '#F59E0B' },
-  accepted: { bg: '#F0FDF4', color: '#22C55E' },
-  rejected: { bg: '#FEF2F2', color: '#EF4444' },
-}
-
-export const STATUS_OPTIONS = [
-  { value: 'open', label: 'Отворено' },
-  { value: 'under_review', label: 'Се разгледува' },
-  { value: 'accepted', label: 'Прифатено' },
-  { value: 'rejected', label: 'Одбиено' },
-]
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+import client from '../../api/client';
 
 export function useIdeaDetailLogic() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [modalOpen, setModalOpen] = useState(false)
-  const [newStatus, setNewStatus] = useState('')
+  const [modalOpen, setModalOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState('');
 
   const { data: idea, isLoading } = useQuery({
     queryKey: ['idea', id],
     queryFn: async () => {
-      const { data } = await client.get(`/ideas/${id}`)
-      return data
+      const { data } = await client.get(`/ideas/${id}`);
+      return data;
     },
     enabled: !!id,
-  })
+  });
 
   const statusMutation = useMutation({
     mutationFn: ({ status }: { status: string }) =>
       client.patch(`/ideas/${id}/status`, { status }),
     onSuccess: () => {
-      toast.success('Статусот е успешно ажуриран')
-      queryClient.invalidateQueries({ queryKey: ['idea', id] })
-      queryClient.invalidateQueries({ queryKey: ['ideas'] })
-      closeModal()
+      toast.success('Статусот е успешно ажуриран');
+      queryClient.invalidateQueries({ queryKey: ['idea', id] });
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
+      closeModal();
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Грешка при ажурирање')
+      toast.error(err.response?.data?.detail || 'Грешка при ажурирање');
     },
-  })
+  });
 
   const openModal = () => {
-    setNewStatus(idea?.status || 'open')
-    setModalOpen(true)
-  }
+    setNewStatus(idea?.status || 'open');
+    setModalOpen(true);
+  };
 
   const closeModal = () => {
-    setModalOpen(false)
-    setNewStatus('')
-  }
+    setModalOpen(false);
+    setNewStatus('');
+  };
 
   const handleStatusUpdate = () => {
     if (!newStatus) {
-      toast.error('Изберете нов статус')
-      return
+      toast.error('Изберете нов статус');
+      return;
     }
-    statusMutation.mutate({ status: newStatus })
-  }
+    statusMutation.mutate({ status: newStatus });
+  };
 
   return {
     idea,
@@ -85,5 +64,5 @@ export function useIdeaDetailLogic() {
     handleStatusUpdate,
     isUpdating: statusMutation.isPending,
     goBack: () => navigate('/ideas'),
-  }
+  };
 }

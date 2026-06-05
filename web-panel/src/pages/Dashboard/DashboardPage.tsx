@@ -1,5 +1,5 @@
-import React from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
+import React, { useEffect } from "react";
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 // @ts-ignore
 import "leaflet/dist/leaflet.css";
 import {
@@ -21,11 +21,29 @@ import {
   Cell,
 } from "recharts";
 
-import { useDashboardLogic } from "./logic";
+import { useDashboardLogic, RecentReportItem, HeatmapPoint } from "./logic";
 import { styles, globalStyles, STATUS_COLORS, STATUS_MK } from "./style";
 
-// Helper Components
-function StatCard({ icon: Icon, label, value, color, bg }: any) {
+// Helper component to explicitly update Leaflet's camera center
+function RecenterMap({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.setView(center, map.getZoom());
+    }
+  }, [center, map]);
+  return null;
+}
+
+interface StatCardProps {
+  icon: React.ComponentType<any>;
+  label: string;
+  value: string | number | undefined;
+  color: string;
+  bg: string;
+}
+
+function StatCard({ icon: Icon, label, value, color, bg }: StatCardProps) {
   return (
     <div style={styles.statCard} className="stat-card">
       <div style={{ ...styles.statIcon, background: bg, color }}>
@@ -44,11 +62,11 @@ function StatusBadge({ status }: { status: string }) {
     <span
       style={{
         ...styles.badge,
-        background: STATUS_COLORS[status] + "18",
-        color: STATUS_COLORS[status],
+        background: STATUS_COLORS[status] ? STATUS_COLORS[status] + "18" : "#E2E8F0",
+        color: STATUS_COLORS[status] || "#64748B",
       }}
     >
-      {STATUS_MK[status] || status}
+      ={STATUS_MK[status] || status}
     </span>
   );
 }
@@ -57,12 +75,17 @@ export default function DashboardPage() {
   const {
     stats,
     statsLoading,
+    reportsLoading,
     heatmap,
     recentReports,
     categoryData,
     mapCenter,
     formattedDate,
+    handleRowClick,
   } = useDashboardLogic();
+
+  // Color cycles for chart visualization
+  const chartColors = ["#38BDF8", "#6366F1", "#22C55E", "#F59E0B", "#EF4444"];
 
   return (
     <div style={styles.root}>
@@ -133,7 +156,8 @@ export default function DashboardPage() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
-              {heatmap?.map((point: any) => (
+              <RecenterMap center={mapCenter} />
+              {heatmap?.map((point: HeatmapPoint) => (
                 <CircleMarker
                   key={point.report_id}
                   center={[point.latitude, point.longitude]}
@@ -147,12 +171,7 @@ export default function DashboardPage() {
                   }}
                 >
                   <Popup>
-                    <span
-                      style={{
-                        fontFamily: "DM Sans, sans-serif",
-                        fontSize: 13,
-                      }}
-                    >
+                    <span style={{ fontFamily: "DM Sans, sans-serif", fontSize: 13 }}>
                       Пријава #{point.report_id}
                     </span>
                   </Popup>
@@ -202,12 +221,8 @@ export default function DashboardPage() {
                 <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={24}>
                   {categoryData.map((_: any, i: number) => (
                     <Cell
-                      key={i}
-                      fill={
-                        ["#38BDF8", "#6366F1", "#22C55E", "#F59E0B", "#EF4444"][
-                          i % 5
-                        ]
-                      }
+                      key={`cell-${i}`}
+                      fill={chartColors[i % chartColors.length]}
                     />
                   ))}
                 </Bar>
@@ -235,15 +250,27 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {recentReports?.length === 0 && (
+              {((!recentReports || recentReports.length === 0) && !reportsLoading) && (
                 <tr>
                   <td colSpan={5} style={styles.empty}>
                     Нема пријави
                   </td>
                 </tr>
               )}
-              {recentReports?.map((r: any) => (
-                <tr key={r.id} className="report-row" style={styles.tr}>
+              {reportsLoading && (
+                <tr>
+                  <td colSpan={5} style={styles.empty}>
+                    Се вчитува...
+                  </td>
+                </tr>
+              )}
+              {recentReports?.map((r: RecentReportItem) => (
+                <tr 
+                  key={r.id} 
+                  className="report-row" 
+                  style={{ ...styles.tr, cursor: 'pointer' }}
+                  onClick={() => handleRowClick(r.id)}
+                >
                   <td style={styles.td}>
                     <span style={styles.reportId}>#{r.id}</span>
                   </td>

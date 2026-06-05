@@ -8,8 +8,6 @@ class IdeaCreate(BaseModel):
     description: str = Field(..., min_length=10)
     latitude: float | None = Field(None, ge=-90, le=90)
     longitude: float | None = Field(None, ge=-180, le=180)
-    municipality_name: str | None = None
-    user_full_name: str | None = None
     municipality_id: int
 
 
@@ -23,7 +21,9 @@ class IdeaResponse(BaseModel):
     description: str
     status: IdeaStatus
     municipality_id: int
+    municipality_name: str | None = None
     user_id: int | None
+    user_full_name: str | None = None
     latitude: float | None = None
     longitude: float | None = None
     vote_count: int = 0
