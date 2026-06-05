@@ -1,53 +1,48 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-const QUEUE_STORAGE_KEY = '@citizens_activism_offline_reports'
+const QUEUE_KEY = 'civic_offline_queue'
 
-export interface QueuedReport {
-  id: string 
+export interface PendingReport {
+  id: string
   title: string
-  description: string
-  category_id: string
+  description?: string
   latitude: number
   longitude: number
-  images: string[] 
-  timestamp: number
+  address?: string
+  municipality_id: number
+  imageUri?: string
+  createdAt: string
 }
 
-export const OfflineQueue = {
-  getQueue: async (): Promise<QueuedReport[]> => {
-    try {
-      const data = await AsyncStorage.getItem(QUEUE_STORAGE_KEY)
-      return data ? JSON.parse(data) : []
-    } catch (error) {
-      console.error('Error reading offline queue:', error)
-      return []
-    }
-  },
-
-  enqueue: async (report: Omit<QueuedReport, 'id' | 'timestamp'>): Promise<void> => {
-    try {
-      const queue = await OfflineQueue.getQueue()
-      const newReport: QueuedReport = {
-        ...report,
-        id: `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: Date.now(),
-      }
-      
-      queue.push(newReport)
-      await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue))
-    } catch (error) {
-      console.error('Error saving report to offline queue:', error)
-      throw error;
-    }
-  },
-
-  dequeue: async (id: string): Promise<void> => {
-    try {
-      const queue = await OfflineQueue.getQueue()
-      const filteredQueue = queue.filter((item) => item.id !== id)
-      await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(filteredQueue))
-    } catch (error) {
-      console.error('Error removing item from offline queue:', error)
-    }
+export const getQueue = async (): Promise<PendingReport[]> => {
+  try {
+    const raw = await AsyncStorage.getItem(QUEUE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
   }
+}
+
+export const addToQueue = async (report: PendingReport): Promise<void> => {
+  try {
+    const queue = await getQueue()
+    queue.push(report)
+    await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue))
+  } catch (err) {
+    console.error('Failed to add to offline queue:', err)
+  }
+}
+
+export const removeFromQueue = async (id: string): Promise<void> => {
+  try {
+    const queue = await getQueue()
+    const updated = queue.filter((r) => r.id !== id)
+    await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(updated))
+  } catch (err) {
+    console.error('Failed to remove from queue:', err)
+  }
+}
+
+export const clearQueue = async (): Promise<void> => {
+  await AsyncStorage.removeItem(QUEUE_KEY)
 }

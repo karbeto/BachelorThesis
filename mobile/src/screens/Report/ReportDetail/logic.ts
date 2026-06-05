@@ -1,97 +1,81 @@
-import { useState, useEffect } from 'react'
-import { useRoute, useNavigation } from '@react-navigation/native'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getReport, voteReport, unvoteReport, rateReport } from '../../../api/reports'
-import { useAuth } from '../../../context/AuthContext'
-import { useModal } from '../../../utils/formHooks'
-import Toast from 'react-native-toast-message'
+import { useState } from "react";
+import { useRoute, useNavigation } from "@react-navigation/native";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getReport,
+  voteReport,
+  unvoteReport,
+  rateReport,
+} from "../../../api/reports";
+import { useAuth } from "../../../context/AuthContext";
+import { useModal } from "../../../utils/formHooks";
+import Toast from "react-native-toast-message";
 
 export function useReportDetailLogic() {
-  const route = useRoute<any>()
-  const navigation = useNavigation<any>()
-  const queryClient = useQueryClient()
-  const { user } = useAuth()
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  const { id } = route.params
-  const ratingModal = useModal()
-  const imageModal = useModal()
+  const { id } = route.params;
+  const ratingModal = useModal();
+  const imageModal = useModal();
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const [rating, setRating] = useState(0)
-  const [ratingComment, setRatingComment] = useState('')
-  const [hasVoted, setHasVoted] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [rating, setRating] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
 
   // Fetch report details
   const { data: report, isLoading } = useQuery({
-    queryKey: ['report', id],
+    queryKey: ["report", id],
     queryFn: () => getReport(id),
-  })
+  });
 
-  // Sync state accurately whenever the cache query context modifies
-  useEffect(() => {
-    if (report) {
-      setHasVoted(!!report.is_voted_by_me)
-    }
-  }, [report])
+  // State is derived directly from the server-fetched report object
+  const hasVoted = !!report?.is_voted_by_me;
 
   const voteMutation = useMutation({
     mutationFn: () => (hasVoted ? unvoteReport(id) : voteReport(id)),
-    // Optimistic cache update logic block applied here
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['report', id] })
-      const previousReport = queryClient.getQueryData(['report', id])
-
-      // Flip state immediately for immediate crisp layout visual response
-      setHasVoted(!hasVoted)
-
-      return { previousReport }
-    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['report', id] })
-      queryClient.invalidateQueries({ queryKey: ['reports-map'] })
-      queryClient.invalidateQueries({ queryKey: ['my-reports'] })
+      // Invalidate only after a successful server response
+      queryClient.invalidateQueries({ queryKey: ["report", id] });
+      queryClient.invalidateQueries({ queryKey: ["reports-map"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reports"] });
       
       Toast.show({
-        type: 'success',
-        text1: hasVoted ? 'Гласот е додаден ✓' : 'Гласот е отстранет',
-      })
+        type: "success",
+        text1: hasVoted ? "Гласот е отстранет" : "Гласот е додаден ✓",
+      });
     },
-    onError: (err: any, _, context) => {
-      // Revert accurately if server pipeline experiences drops
-      if (context?.previousReport) {
-        queryClient.setQueryData(['report', id], context.previousReport)
-      }
-      setHasVoted(hasVoted)
-
-      Toast.show({
-        type: 'error',
-        text1: err.response?.data?.detail || 'Грешка при гласање',
-      })
+    onError: (err: any) => {
+      Toast.show({ 
+        type: "error", 
+        text1: err.response?.data?.detail || "Грешка при гласање" 
+      });
     },
-  })
+  });
 
   const ratingMutation = useMutation({
     mutationFn: () => rateReport(id, rating, ratingComment || undefined),
     onSuccess: () => {
-      Toast.show({ type: 'success', text1: 'Оценката е зачувана ✓' })
-      queryClient.invalidateQueries({ queryKey: ['report', id] })
-      ratingModal.close()
-      setRating(0)
-      setRatingComment('')
+      Toast.show({ type: "success", text1: "Оценката е зачувана ✓" });
+      queryClient.invalidateQueries({ queryKey: ["report", id] });
+      ratingModal.close();
+      setRating(0);
+      setRatingComment("");
     },
     onError: (err: any) => {
       Toast.show({
-        type: 'error',
-        text1: err.response?.data?.detail || 'Грешка при оценување',
-      })
+        type: "error",
+        text1: err.response?.data?.detail || "Грешка при оценување",
+      });
     },
-  })
+  });
 
-  // Check if user is eligible to submit rating details
-  const canRate = 
-    user?.id === report?.user_id && 
-    report?.status === 'resolved' && 
-    !report?.is_rated
+  const canRate =
+    user?.id === report?.user_id &&
+    report?.status === "resolved" &&
+    !report?.is_rated;
 
   return {
     report,
@@ -105,27 +89,26 @@ export function useReportDetailLogic() {
     imageModal,
     selectedImage,
     openImage: (url: string) => {
-      setSelectedImage(url)
-      imageModal.open()
+      setSelectedImage(url);
+      imageModal.open();
     },
     closeImage: () => {
-      setSelectedImage(null)
-      imageModal.close()
+      setSelectedImage(null);
+      imageModal.close();
     },
     canRate,
     handleVote: () => {
-      if (voteMutation.isPending) return
-      voteMutation.mutate()
+      if (!voteMutation.isPending) {
+        voteMutation.mutate();
+      }
     },
     handleRating: () => {
-      if (rating === 0) {
-        Toast.show({ type: 'error', text1: 'Изберете оценка со ѕвездички' })
-        return
-      }
-      ratingMutation.mutate()
+      if (rating === 0)
+        return Toast.show({ type: "error", text1: "Изберете оценка" });
+      ratingMutation.mutate();
     },
     isVoting: voteMutation.isPending,
     isRating: ratingMutation.isPending,
     goBack: () => navigation.goBack(),
-  }
+  };
 }

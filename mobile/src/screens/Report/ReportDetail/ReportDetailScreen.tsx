@@ -83,7 +83,6 @@ export default function ReportDetailScreen() {
           { padding: theme.spacing.lg, gap: theme.spacing.lg, paddingTop: 64 },
         ]}
       >
-        {/* Header Skeleton */}
         <View
           style={{
             flexDirection: "row",
@@ -99,7 +98,6 @@ export default function ReportDetailScreen() {
           <Skeleton width="40%" height={24} />
         </View>
 
-        {/* Title Card Skeleton */}
         <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.md }}>
           <View
             style={{
@@ -118,7 +116,6 @@ export default function ReportDetailScreen() {
           <Skeleton width="35%" height={16} />
         </View>
 
-        {/* Description Card Skeleton */}
         <View
           style={{
             backgroundColor: theme.colors.surface,
@@ -133,7 +130,6 @@ export default function ReportDetailScreen() {
           <Skeleton width="40%" height={14} />
         </View>
 
-        {/* Map Skeleton */}
         <View
           style={{
             backgroundColor: theme.colors.surface,
@@ -168,7 +164,6 @@ export default function ReportDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Structural Action Navigation Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -187,7 +182,6 @@ export default function ReportDetailScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Core Metadata Card */}
         <View style={styles.titleCard}>
           <View style={styles.titleRow}>
             <Text style={styles.reportTitle}>{report.title}</Text>
@@ -234,7 +228,6 @@ export default function ReportDetailScreen() {
           </View>
         </View>
 
-        {/* Textual Description Section */}
         {report.description && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Опис</Text>
@@ -242,7 +235,6 @@ export default function ReportDetailScreen() {
           </View>
         )}
 
-        {/* Geolocation Section */}
         {hasLocation && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Локација</Text>
@@ -267,7 +259,6 @@ export default function ReportDetailScreen() {
           </View>
         )}
 
-        {/* Attachments Carousel Section */}
         {report.images?.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Фотографии</Text>
@@ -293,14 +284,18 @@ export default function ReportDetailScreen() {
           </View>
         )}
 
-        {/* Interactive Engagement Toggles */}
         <View style={styles.actionsRow}>
+          {/* VOTE BUTTON */}
           <TouchableOpacity
-            style={[styles.voteBtn, hasVoted && styles.voteBtnActive]}
+            style={[
+              styles.voteBtn,
+              report?.is_voted_by_me && styles.voteBtnActive,
+            ]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               handleVote();
             }}
+            // Disable if voting is in progress OR if the report is in a state that blocks voting
             disabled={isVoting}
             activeOpacity={0.8}
           >
@@ -309,17 +304,23 @@ export default function ReportDetailScreen() {
             ) : (
               <>
                 <Ionicons
-                  name={hasVoted ? "thumbs-up" : "thumbs-up-outline"}
+                  name={
+                    report?.is_voted_by_me ? "thumbs-up" : "thumbs-up-outline"
+                  }
                   size={18}
-                  color={hasVoted ? theme.colors.accent : theme.colors.text}
+                  color={
+                    report?.is_voted_by_me
+                      ? theme.colors.accent
+                      : theme.colors.text
+                  }
                 />
                 <Text
                   style={[
                     styles.voteBtnText,
-                    hasVoted && styles.voteBtnTextActive,
+                    report?.is_voted_by_me && styles.voteBtnTextActive,
                   ]}
                 >
-                  {hasVoted ? "Гласано" : "Гласај"}
+                  {report?.is_voted_by_me ? "Гласано" : "Гласај"}
                 </Text>
               </>
             )}
@@ -365,7 +366,6 @@ export default function ReportDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Extracted Rating overlay sheet handler */}
       <RatingModal
         visible={ratingModal.visible}
         onClose={ratingModal.close}
@@ -379,7 +379,6 @@ export default function ReportDetailScreen() {
         theme={theme}
       />
 
-      {/* Media lightbox modal */}
       <Modal
         visible={imageModal.visible}
         transparent

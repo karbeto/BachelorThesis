@@ -75,14 +75,25 @@ export default function ReportDetailPage() {
   return (
     <div style={styles.root}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
-        * { box-sizing: border-box; }
-        .back-btn:hover { color: #0F172A !important; }
-        .update-btn:hover { background: #1E293B !important; }
-        .cancel-btn:hover { background: #F8FAFC !important; }
-        .confirm-btn:hover { background: #1E293B !important; }
-        .leaflet-container { border-radius: 10px; }
-      `}</style>
+          @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+          * { box-sizing: border-box; }
+          .back-btn:hover { color: #0F172A !important; }
+          .update-btn:hover { background: #1E293B !important; }
+          .cancel-btn:hover { background: #F8FAFC !important; }
+          .confirm-btn:hover { background: #1E293B !important; }
+          
+          /* LOWER THE LEAFLET MAP ELEMENT STACKING LAYERS */
+          .leaflet-container { 
+            border-radius: 10px; 
+            z-index: 1 !important; 
+          }
+          .leaflet-pane { 
+            z-index: 1 !important; 
+          }
+          .leaflet-top, .leaflet-bottom { 
+            z-index: 2 !important; 
+          }
+`}</style>
 
       {/* Back */}
       <button className="back-btn" style={styles.backBtn} onClick={goBack}>

@@ -2,20 +2,18 @@ import { useState, useEffect } from 'react'
 import { Alert, Platform } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
+import NetInfo from '@react-native-community/netinfo'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { submitReport } from '../../../api/reports'
 import { getMunicipalities } from '../../../api/municipalities'
 import { useFormField } from '../../../utils/formHooks'
 import { useNavigation } from '@react-navigation/native'
+import { addToQueue } from '../../../utils/offlineQueue'
 import Toast from 'react-native-toast-message'
+import 'react-native-get-random-values'
+import { v4 as uuidv4 } from 'uuid'
 
 export type SubmitStep = 'photo' | 'location' | 'form'
-
-interface FormDataFile {
-  uri: string
-  name: string
-  type: string
-}
 
 interface Municipality {
   id: number
@@ -29,7 +27,6 @@ export function useSubmitReportLogic() {
   const navigation = useNavigation<any>()
   const queryClient = useQueryClient()
 
-  // Fetch all municipalities from your backend
   const { data: municipalities } = useQuery<Municipality[]>({
     queryKey: ['municipalities'],
     queryFn: getMunicipalities,
@@ -43,7 +40,6 @@ export function useSubmitReportLogic() {
   } | null>(null)
   const [address, setAddress] = useState<string>('')
   
-  // Base fallback ID (e.g., Skopje overall, or Centar)
   const [municipalityId, setMunicipalityId] = useState<number>(2) 
   const [locating, setLocating] = useState(false)
 
@@ -56,12 +52,11 @@ export function useSubmitReportLogic() {
     }
   }, [step])
 
-  // Helper function to normalize Macedonian cyrillic/latin variations if needed
   const normalizeString = (str: string) => {
     return str
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Removes accents/diacritics (e.g., š -> s)
+      .replace(/[\u0300-\u036f]/g, '') 
       .replace(/gj/g, 'g')
       .replace(/ch/g, 'c')
       .trim()
@@ -100,14 +95,11 @@ export function useSubmitReportLogic() {
         
         setAddress(computedAddress || `${currentCoords.latitude.toFixed(5)}, ${currentCoords.longitude.toFixed(5)}`)
         
-        // --- MULTI-MUNICIPALITY DETECTOR ---
         if (municipalities) {
-          // Combine all potential spatial text fields into one searchable block
           const spatialPool = normalizeString(
             `${g.district || ''} ${g.subregion || ''} ${g.city || ''} ${g.street || ''}`
           )
 
-          // Find which DB municipality name is mentioned inside our pool
           const matchedMun = municipalities.find((m) => {
             const normalizedDbName = normalizeString(m.name)
             return spatialPool.includes(normalizedDbName)
@@ -116,15 +108,12 @@ export function useSubmitReportLogic() {
           if (matchedMun) {
             setMunicipalityId(matchedMun.id)
           } else {
-            // Fallback: If it's general "Skopje" but district didn't match, 
-            // look for any catch-all Skopje entry in your database
             const skopjeFallback = municipalities.find(m => 
               normalizeString(m.name).includes('skopje')
             )
             if (skopjeFallback) setMunicipalityId(skopjeFallback.id)
           }
         }
-        // ------------------------------------
       }
     } catch (error) {
       Toast.show({ type: 'error', text1: 'Не може да се земе локацијата' })
@@ -189,9 +178,36 @@ export function useSubmitReportLogic() {
         throw new Error('Validation failed')
       }
 
+      const networkState = await NetInfo.fetch()
+      const isOnline = networkState.isConnected && networkState.isInternetReachable !== false
+
+      if (!isOnline) {
+        await addToQueue({
+          id: uuidv4(),
+          title: title.value.trim(),
+          description: description.value.trim() || undefined,
+          latitude: location!.latitude,
+          longitude: location!.longitude,
+          address: address || undefined,
+          municipality_id: municipalityId,
+          imageUri: image?.uri || undefined,
+          createdAt: new Date().toISOString(),
+        })
+
+        Toast.show({
+          type: 'info',
+          text1: 'Зачувано офлајн 📥',
+          text2: 'Пријавата ќе се поднесе кога ќе се поврзете на интернет.',
+          visibilityTime: 4000,
+        })
+
+        navigation.goBack()
+        return null 
+      }
+
       const formData = new FormData()
       formData.append('title', title.value.trim())
-      formData.append('description', description.value.trim())
+      if (description.value) formData.append('description', description.value.trim())
       formData.append('latitude', String(location!.latitude))
       formData.append('longitude', String(location!.longitude))
       formData.append('municipality_id', String(municipalityId))
@@ -213,7 +229,9 @@ export function useSubmitReportLogic() {
 
       return submitReport(formData)
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data === null) return
+
       Toast.show({
         type: 'success',
         text1: 'Пријавата е поднесена! ✓',
@@ -223,14 +241,38 @@ export function useSubmitReportLogic() {
       queryClient.invalidateQueries({ queryKey: ['my-reports'] })
       navigation.goBack()
     },
-    onError: (err: any) => {
+    onError: async (err: any) => {
       if (err.message === 'Validation failed') return
 
-      Toast.show({
-        type: 'error',
-        text1: 'Грешка при поднесување',
-        text2: err.response?.data?.detail || 'Обидете се повторно',
-      })
+      const isNetworkError = err.message === 'Network Error' || !err.response
+
+      if (isNetworkError) {
+        await addToQueue({
+          id: uuidv4(),
+          title: title.value.trim(),
+          description: description.value.trim() || undefined,
+          latitude: location!.latitude,
+          longitude: location!.longitude,
+          address: address || undefined,
+          municipality_id: municipalityId,
+          imageUri: image?.uri || undefined,
+          createdAt: new Date().toISOString(),
+        })
+
+        Toast.show({
+          type: 'info',
+          text1: 'Зачувано офлајн 📥',
+          text2: 'Пријавата ќе се поднесе кога ќе се поврзете на интернет.',
+          visibilityTime: 4000,
+        })
+        navigation.goBack()
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Грешка при поднесување',
+          text2: err.response?.data?.detail || 'Обидете се повторно',
+        })
+      }
     },
   })
 

@@ -16,9 +16,9 @@ from app.core.security import hash_password
 
 # ── Seed Data — Veles Only ───────────────────────────────────────────────────
 
-CITY = {"name": "Велес", "country": "Macedonia"}
+CITY = {"name": "Veles", "country": "Macedonia"}
 
-MUNICIPALITY = {"name": "Општина Велес"}
+MUNICIPALITY = {"name": "Veles"}
 
 CATEGORIES = [
     {
