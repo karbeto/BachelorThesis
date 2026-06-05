@@ -7,6 +7,7 @@ import DashboardPage from './pages/Dashboard/DashboardPage'
 import ReportsPage from './pages/Reports/ReportsPage'
 import ReportDetailPage from './pages/ReportDetail/ReportDetailPage'
 import IdeasPage from './pages/Ideas/IdeasPage'
+import IdeaDetailPage from './pages/IdeaDetail/IdeaDetailPage'
 import AdminPage from './pages/Admin/AdminPage'
 import Layout from './components/Layout'
 
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="reports" element={<ReportsPage />} />
             <Route path="reports/:id" element={<ReportDetailPage />} />
             <Route path="ideas" element={<IdeasPage />} />
+            <Route path="/ideas/:id" element={<IdeaDetailPage />} />
             <Route path="admin" element={<AdminPage />} />
           </Route>
         </Routes>

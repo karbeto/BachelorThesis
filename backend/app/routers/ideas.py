@@ -25,14 +25,27 @@ async def get_idea_or_404(idea_id: int, db: AsyncSession) -> Idea:
     return idea
 
 
-def build_idea_response(idea: Idea, vote_count: int) -> IdeaResponse:
+async def build_idea_response(idea: Idea, vote_count: int, db: AsyncSession) -> IdeaResponse:
+    mun_result = await db.execute(
+        select(Municipality.name).where(Municipality.id == idea.municipality_id)
+    )
+    municipality_name = mun_result.scalar_one_or_none()
+
+    from app.models.user import User
+    user_result = await db.execute(
+        select(User.full_name).where(User.id == idea.user_id)
+    )
+    user_full_name = user_result.scalar_one_or_none()
+
     return IdeaResponse(
         id=idea.id,
         title=idea.title,
         description=idea.description,
         status=idea.status,
         municipality_id=idea.municipality_id,
+        municipality_name=municipality_name,
         user_id=idea.user_id,
+        user_full_name=user_full_name,
         latitude=None,
         longitude=None,
         vote_count=vote_count,
@@ -78,7 +91,7 @@ async def create_idea(
     db.add(idea)
     await db.flush()
     await db.refresh(idea)
-    return build_idea_response(idea, vote_count=0)
+    return await build_idea_response(idea, vote_count=0, db=db)
 
 
 @router.get("/", response_model=list[IdeaResponse])
@@ -104,7 +117,7 @@ async def list_ideas(
             )
         )
         vote_count = vote_result.scalar() or 0
-        responses.append(build_idea_response(idea, vote_count))
+        responses.append(await build_idea_response(idea, vote_count, db))
 
     return responses
 
@@ -119,7 +132,7 @@ async def get_idea(
         select(func.count(IdeaVote.id)).where(IdeaVote.idea_id == idea_id)
     )
     vote_count = vote_result.scalar() or 0
-    return build_idea_response(idea, vote_count)
+    return await build_idea_response(idea, vote_count, db)
 
 
 @router.patch("/{idea_id}/status", response_model=IdeaResponse)
@@ -138,7 +151,7 @@ async def update_idea_status(
         select(func.count(IdeaVote.id)).where(IdeaVote.idea_id == idea_id)
     )
     vote_count = vote_result.scalar() or 0
-    return build_idea_response(idea, vote_count)
+    return await build_idea_response(idea, vote_count, db)
 
 
 @router.delete("/{idea_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -154,3 +167,41 @@ async def delete_idea(
             detail="You can only delete your own ideas",
         )
     await db.delete(idea)
+
+
+@router.post("/{idea_id}/vote", status_code=status.HTTP_201_CREATED)
+async def vote_idea(
+    idea_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await get_idea_or_404(idea_id, db)
+    existing = await db.execute(
+        select(IdeaVote).where(
+            IdeaVote.idea_id == idea_id,
+            IdeaVote.user_id == current_user.id,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Already voted")
+    db.add(IdeaVote(idea_id=idea_id, user_id=current_user.id))
+    return {"voted": True}
+
+
+@router.delete("/{idea_id}/vote", status_code=status.HTTP_204_NO_CONTENT)
+async def unvote_idea(
+    idea_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(IdeaVote).where(
+            IdeaVote.idea_id == idea_id,
+            IdeaVote.user_id == current_user.id,
+        )
+    )
+    vote = result.scalar_one_or_none()
+    if not vote:
+        raise HTTPException(status_code=404, detail="Vote not found")
+    await db.delete(vote)
+

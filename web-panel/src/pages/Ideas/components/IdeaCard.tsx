@@ -1,5 +1,6 @@
 import React from 'react';
 import { ThumbsUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { IdeaStatusBadge } from '../../../components/ui/IdeaStatusBadge';
 
 interface IdeaCardProps {
@@ -9,8 +10,14 @@ interface IdeaCardProps {
 }
 
 export const IdeaCard: React.FC<IdeaCardProps> = ({ idea, onOpenModal, styles }) => {
+  const navigate = useNavigate();
+
   return (
-    <div className="idea-card" style={styles.ideaCard}>
+    <div
+      className="idea-card"
+      style={{ ...styles.ideaCard, cursor: 'pointer' }}
+      onClick={() => navigate(`/ideas/${idea.id}`)}
+    >
       <div style={styles.ideaCardTop}>
         <span style={styles.ideaTitle}>{idea.title}</span>
         <IdeaStatusBadge status={idea.status} />
@@ -31,7 +38,10 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ idea, onOpenModal, styles })
       <button
         className="action-btn"
         style={styles.actionBtn}
-        onClick={() => onOpenModal(idea)}
+        onClick={(e) => {
+          e.stopPropagation()
+          onOpenModal(idea)
+        }}
       >
         Промени статус
       </button>
