@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useRoute } from '@react-navigation/native'
 import { submitIdea } from '../../../api/ideas'
 import { useFormField } from '../../../utils/formHooks'
 import Toast from 'react-native-toast-message'
@@ -14,7 +14,11 @@ const validateDescription = (v: string) =>
 export function useSubmitIdeaLogic() {
   const navigation = useNavigation<any>()
   const queryClient = useQueryClient()
-  const [municipalityId] = useState(1)
+  const route = useRoute<any>()
+  const { preselectedMunicipalityId, currentCoords } = route.params || {}
+
+  const [municipalityId] = useState<number | null>(preselectedMunicipalityId || null)
+  const [coords] = useState<{ latitude: number; longitude: number } | null>(currentCoords || null)
 
   const title = useFormField<string>('', validateTitle)
   const description = useFormField<string>('', validateDescription)
@@ -22,13 +26,20 @@ export function useSubmitIdeaLogic() {
   const [titleFocused, setTitleFocused] = useState(false)
   const [descFocused, setDescFocused] = useState(false)
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      submitIdea({
+const mutation = useMutation({
+    mutationFn: () => {
+      if (!municipalityId) {
+        return Promise.reject(new Error('Missing municipality ID'));
+      }
+
+      return submitIdea({
         title: title.value,
         description: description.value,
         municipality_id: municipalityId,
-      }),
+        latitude: coords?.latitude ?? undefined,
+        longitude: coords?.longitude ?? undefined,
+      });
+    },
     onSuccess: () => {
       Toast.show({
         type: 'success',
@@ -51,6 +62,16 @@ export function useSubmitIdeaLogic() {
     const titleValid = title.validateField()
     const descValid = description.validateField()
     if (!titleValid || !descValid) return
+
+    if (!municipalityId) {
+      Toast.show({
+        type: 'error',
+        text1: 'Локациска грешка',
+        text2: 'Не може да се утврди матичната општина за овој предлог.',
+      })
+      return
+    }
+
     mutation.mutate()
   }
 
@@ -64,5 +85,6 @@ export function useSubmitIdeaLogic() {
     handleSubmit,
     isSubmitting: mutation.isPending,
     goBack: () => navigation.goBack(),
+    hasLocation: coords !== null,
   }
 }

@@ -22,6 +22,7 @@ export function useFormField<T = string>(
 
   const onChange = (val: T) => {
     setValue(val);
+    setError(undefined);
     if (!isTouched) setIsTouched(true);
   };
 

@@ -383,7 +383,10 @@ async def list_reports(
     
     user_role = current_user.role.value if hasattr(current_user.role, "value") else current_user.role
 
-    if user_role != "superadmin":
+    if user_role == "citizen":
+        pass
+
+    elif user_role != "superadmin":
         emp_query = await db.execute(
             text("SELECT municipality_id FROM municipality_employees WHERE user_id = :u_id"),
             {"u_id": current_user.id}
@@ -392,7 +395,7 @@ async def list_reports(
         
         if user_municipality_id is None:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=403,
                 detail="Admin account is not assigned to any municipality workspace."
             )
         
