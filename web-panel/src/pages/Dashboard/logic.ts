@@ -35,19 +35,42 @@ export interface RecentReportItem {
 export function useDashboardLogic() {
   const navigate = useNavigate();
 
+  // Safely grab account scope context
+  const profile = useMemo(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      return parsed?.user || parsed;
+    } catch (e) {
+      return null;
+    }
+  }, []);
+
+  const isSuperAdmin = profile?.role === "superadmin";
+  const municipalityId = profile?.municipality_id;
+
+  // Build the unified scope filter object
+  const scopeFilter = useMemo(() => {
+    return isSuperAdmin ? {} : { municipality_id: municipalityId };
+  }, [isSuperAdmin, municipalityId]);
+
+  // 1. Stats Query with cache segmentation
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: getStats,
+    queryKey: ['dashboard-stats', isSuperAdmin ? 'global' : municipalityId],
+    queryFn: () => getStats(scopeFilter),
   });
 
+  // 2. Heatmap Query with cache segmentation
   const { data: heatmap } = useQuery<HeatmapPoint[]>({
-    queryKey: ['dashboard-heatmap'],
-    queryFn: getHeatmap,
+    queryKey: ['dashboard-heatmap', isSuperAdmin ? 'global' : municipalityId],
+    queryFn: () => getHeatmap(scopeFilter),
   });
 
+  // 3. Recent Reports Query with combined filters
   const { data: recentReports, isLoading: reportsLoading } = useQuery<RecentReportItem[]>({
-    queryKey: ['recent-reports'],
-    queryFn: () => getReports({ limit: 6 }),
+    queryKey: ['recent-reports', isSuperAdmin ? 'global' : municipalityId],
+    queryFn: () => getReports({ limit: 6, ...scopeFilter }),
   });
 
   // Prevent recreation of arrays on arbitrary UI state changes

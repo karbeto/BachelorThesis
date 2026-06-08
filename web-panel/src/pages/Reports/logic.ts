@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getReports, updateReportStatus } from '../../api/reports';
@@ -27,14 +27,31 @@ export function useReportsLogic() {
   const [statusNote, setStatusNote] = useState('');
   const [newStatus, setNewStatus] = useState('');
 
+  // Extract logged-in admin's authorization boundaries
+  const profile = useMemo(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      return parsed?.user || parsed;
+    } catch (e) {
+      return null;
+    }
+  }, []);
+
+  const isSuperAdmin = profile?.role === "superadmin";
+  const municipalityId = profile?.municipality_id;
+
+  // Primary isolated query hook
   const { data: reports, isLoading } = useQuery({
-    queryKey: ['reports', filters],
+    queryKey: ['reports', filters, isSuperAdmin ? 'global' : municipalityId], // ◄— Segmented Cache
     queryFn: () =>
       getReports({
         ...(filters.status && { status: filters.status }),
         ...(filters.category_id && { category_id: filters.category_id }),
         skip: filters.skip,
         limit: filters.limit,
+        ...(!isSuperAdmin && { municipality_id: municipalityId }), // ◄— Tenancy Filter Applied
       }),
   });
 

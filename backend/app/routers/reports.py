@@ -6,7 +6,7 @@ from fastapi import (
     status, UploadFile, File, Form,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from geoalchemy2.functions import ST_DWithin, ST_GeomFromText
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
@@ -15,11 +15,12 @@ from app.models.report import Report, ReportStatus
 from app.models.report_image import ReportImage
 from app.models.report_status_history import ReportStatusHistory
 from app.models.report_vote import ReportVote
-from app.models.report_rating import ReportRating  # Added to check report_ratings table
+from app.models.report_rating import ReportRating
 from app.models.municipality_category_routing import MunicipalityCategoryRouting
 from app.models.category import Category
 from app.models.municipality import Municipality
 from app.models.notification import Notification
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.models.user import User
 from app.schemas.report import (
     ReportResponse,
@@ -380,6 +381,23 @@ async def list_reports(
 ):
     query = select(Report).where(Report.is_duplicate == False)  # noqa: E712
     
+    user_role = current_user.role.value if hasattr(current_user.role, "value") else current_user.role
+
+    if user_role != "superadmin":
+        emp_query = await db.execute(
+            text("SELECT municipality_id FROM municipality_employees WHERE user_id = :u_id"),
+            {"u_id": current_user.id}
+        )
+        user_municipality_id = emp_query.scalar_one_or_none()
+        
+        if user_municipality_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin account is not assigned to any municipality workspace."
+            )
+        
+        municipality_id = user_municipality_id
+
     if municipality_id:
         query = query.where(Report.municipality_id == municipality_id)
     if category_id:
