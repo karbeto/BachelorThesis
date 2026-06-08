@@ -27,7 +27,7 @@ export interface RoutingForm {
 export interface CityForm { name: string; country: string }
 export interface MunicipalityForm { name: string; city_id: string }
 
-// ── Shared Routing Logic ─────────────────────────────────────────────────────
+// Shared Routing Logic 
 
 export function useRoutingLogic(fixedMunicipalityId?: number) {
   const queryClient = useQueryClient()
@@ -178,7 +178,7 @@ export function useRoutingLogic(fixedMunicipalityId?: number) {
   }
 }
 
-// ── Municipality Admin Logic ─────────────────────────────────────────────────
+// Municipality Admin Logic
 
 export function useMunicipalityAdminLogic() {
   const [activeTab, setActiveTab] = useState<'categories' | 'routing'>('categories')
@@ -216,7 +216,7 @@ export function useMunicipalityAdminLogic() {
   }
 }
 
-// ── Superadmin Logic ─────────────────────────────────────────────────────────
+// Superadmin Logic
 
 export function useSuperAdminLogic() {
   const queryClient = useQueryClient()
