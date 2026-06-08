@@ -1,9 +1,27 @@
-import { STATUS_COLORS } from '../screens/Map/logic'
+import { STATUS_COLORS } from '../screens/Map/logic';
 
-export function generateMapHtml(reports: any[]): string {
+interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
+export function generateMapHtml(reports: any[], userLocation?: Coordinates | null): string {
+  // Defensive fallback routing for map center focus
+  let centerLat = 41.715;
+  let centerLng = 21.773;
+
+  if (userLocation?.latitude && userLocation?.longitude) {
+    centerLat = userLocation.latitude;
+    centerLng = userLocation.longitude;
+  } else if (reports && reports.length > 0 && reports[0].latitude) {
+    centerLat = reports[0].latitude;
+    centerLng = reports[0].longitude;
+  }
+
   const markersScript = reports
+    .filter((r: any) => r?.latitude && r?.longitude)
     .map((report: any) => {
-      const markerColor = STATUS_COLORS[report.status] || '#94A3B8'
+      const markerColor = STATUS_COLORS[report.status] || '#94A3B8';
       return `
         var marker = L.circleMarker([${report.latitude}, ${report.longitude}], {
           radius: 10,
@@ -16,9 +34,9 @@ export function generateMapHtml(reports: any[]): string {
         marker.on('click', function() {
           window.ReactNativeWebView.postMessage(JSON.stringify({ id: "${report.id}" }));
         });
-      `
+      `;
     })
-    .join('\n')
+    .join('\n');
 
   return `
     <!DOCTYPE html>
@@ -34,7 +52,8 @@ export function generateMapHtml(reports: any[]): string {
     <body>
       <div id="map"></div>
       <script>
-        var map = L.map('map', { zoomControl: false }).setView([41.715, 21.773], 13);
+        // Dynamically initialized using our calculated center focus
+        var map = L.map('map', { zoomControl: false }).setView([${centerLat}, ${centerLng}], 14);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
@@ -45,5 +64,5 @@ export function generateMapHtml(reports: any[]): string {
       </script>
     </body>
     </html>
-  `
+  `;
 }

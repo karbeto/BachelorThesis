@@ -2,12 +2,13 @@ import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+
 import { useTheme } from "../../context/ThemeContext";
 import { createStyles } from "./style";
 import { useMapLogic, STATUS_COLORS } from "./logic";
 import { generateMapHtml } from "../../utils/mapTemplate";
 import { MapLegend } from "./components/MapLegend";
-import * as Haptics from "expo-haptics";
 import { ReportPreviewCard } from "./components/ReportPreviewCard";
 
 const FILTER_OPTIONS = [
@@ -24,33 +25,23 @@ export default function MapScreen() {
 
   const {
     reports,
+    userLocation,
     isLoading,
     selectedReport,
     filterStatus,
     showFilters,
     setShowFilters,
-    handleMarkerPress,
+    handleWebViewMessage,
     handleCardClose,
     handleCardPress,
     handleSubmitPress,
     handleFilterChange,
   } = useMapLogic();
 
-  const mapHtml = useMemo(() => generateMapHtml(reports), [reports]);
-
-  const handleMapMessage = (event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data?.id) {
-        const foundReport = reports.find(
-          (r: any) => String(r.id) === String(data.id),
-        );
-        if (foundReport) handleMarkerPress(foundReport);
-      }
-    } catch (e) {
-      console.warn("Error parsing map click action data:", e);
-    }
-  };
+  // Re-compiles HTML map source when markers change OR user location shifts coordinates
+  const mapHtml = useMemo(() => {
+    return generateMapHtml(reports, userLocation);
+  }, [reports, userLocation]);
 
   return (
     <View style={styles.container}>
@@ -59,7 +50,7 @@ export default function MapScreen() {
         <WebView
           originWhitelist={["*"]}
           source={{ html: mapHtml }}
-          onMessage={handleMapMessage}
+          onMessage={(event) => handleWebViewMessage(event.nativeEvent.data)}
           style={{ flex: 1 }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
@@ -72,7 +63,7 @@ export default function MapScreen() {
           <Ionicons name="map" size={16} color={theme.colors.accent} />
           <Text style={styles.titleText}>Пријави во областа</Text>
           {isLoading ? (
-            <ActivityIndicator size="small" color={theme.colors.accent} />
+            <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginLeft: 6 }} />
           ) : (
             <View style={styles.countPill}>
               <Text style={styles.countText}>{reports.length}</Text>
