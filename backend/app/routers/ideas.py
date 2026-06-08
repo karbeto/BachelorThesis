@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from app.database import get_db
 from app.models.idea import Idea, IdeaStatus
 from app.models.idea_vote import IdeaVote
@@ -90,7 +90,7 @@ async def create_idea(
         )
 
     db.add(idea)
-    await db.commit()  # Persists resource to database
+    await db.commit()
     await db.refresh(idea)
     
     return build_idea_response(
@@ -106,14 +106,38 @@ async def list_ideas(
     municipality_id: int | None = None,
     status: IdeaStatus | None = None,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    # Perform clean SQL outerjoins to resolve string data fields directly
+    user_role = current_user.role.value if hasattr(current_user.role, "value") else current_user.role
+
+    if user_role != "superadmin":
+        emp_query = await db.execute(
+            text("SELECT municipality_id FROM municipality_employees WHERE user_id = :u_id"),
+            {"u_id": current_user.id}
+        )
+        user_municipality_id = emp_query.scalar_one_or_none()
+        
+        if user_municipality_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin account is not assigned to any municipality workspace."
+            )
+        municipality_id = user_municipality_id
+
+    vote_subquery = (
+        select(IdeaVote.idea_id, func.count(IdeaVote.id).label("vote_count"))
+        .group_by(IdeaVote.idea_id)
+        .subquery()
+    )
+
     query = (
-        select(Idea, Municipality.name, User.full_name)
+        select(Idea, Municipality.name, User.full_name, func.coalesce(vote_subquery.c.vote_count, 0))
         .outerjoin(Municipality, Municipality.id == Idea.municipality_id)
         .outerjoin(User, User.id == Idea.user_id)
+        .outerjoin(vote_subquery, vote_subquery.c.idea_id == Idea.id)
         .order_by(Idea.created_at.desc())
     )
+
     if municipality_id:
         query = query.where(Idea.municipality_id == municipality_id)
     if status:
@@ -122,23 +146,17 @@ async def list_ideas(
     result = await db.execute(query)
     rows = result.all()
 
-    responses = []
-    for idea, municipality_name, user_full_name in rows:
-        vote_result = await db.execute(
-            select(func.count(IdeaVote.id)).where(IdeaVote.idea_id == idea.id)
-        )
-        vote_count = vote_result.scalar() or 0
-        responses.append(
-            build_idea_response(idea, municipality_name, user_full_name, vote_count)
-        )
-
-    return responses
+    return [
+        build_idea_response(idea, muni_name, user_name, vote_cnt)
+        for idea, muni_name, user_name, vote_cnt in rows
+    ]
 
 
 @router.get("/{idea_id}", response_model=IdeaResponse)
 async def get_idea(
     idea_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     query = (
         select(Idea, Municipality.name, User.full_name)
@@ -157,6 +175,19 @@ async def get_idea(
         
     idea, municipality_name, user_full_name = row
     
+    user_role = current_user.role.value if hasattr(current_user.role, "value") else current_user.role
+    if user_role != "superadmin":
+        emp_query = await db.execute(
+            text("SELECT municipality_id FROM municipality_employees WHERE user_id = :u_id"),
+            {"u_id": current_user.id}
+        )
+        user_municipality_id = emp_query.scalar_one_or_none()
+        if user_municipality_id is None or idea.municipality_id != user_municipality_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to view configurations for this workspace."
+            )
+    
     vote_result = await db.execute(
         select(func.count(IdeaVote.id)).where(IdeaVote.idea_id == idea_id)
     )
@@ -170,11 +201,25 @@ async def update_idea_status(
     idea_id: int,
     payload: IdeaStatusUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    current_user: User = Depends(get_current_admin),
 ):
     idea = await get_idea_or_404(idea_id, db)
+    
+    user_role = current_user.role.value if hasattr(current_user.role, "value") else current_user.role
+    if user_role != "superadmin":
+        emp_query = await db.execute(
+            text("SELECT municipality_id FROM municipality_employees WHERE user_id = :u_id"),
+            {"u_id": current_user.id}
+        )
+        user_municipality_id = emp_query.scalar_one_or_none()
+        if user_municipality_id is None or idea.municipality_id != user_municipality_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to modify status updates in this workspace."
+            )
+
     idea.status = payload.status
-    await db.commit()  # Save status update
+    await db.commit()
 
     query = (
         select(Idea, Municipality.name, User.full_name)
@@ -205,7 +250,7 @@ async def delete_idea(
             detail="You can only delete your own ideas",
         )
     await db.delete(idea)
-    await db.commit()  # Save delete action
+    await db.commit()
 
 
 @router.post("/{idea_id}/vote", status_code=status.HTTP_201_CREATED)
