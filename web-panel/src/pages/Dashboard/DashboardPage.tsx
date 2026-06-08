@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 // @ts-ignore
 import "leaflet/dist/leaflet.css";
@@ -24,7 +24,7 @@ import {
 import { useDashboardLogic, RecentReportItem, HeatmapPoint } from "./logic";
 import { styles, globalStyles, STATUS_COLORS, STATUS_MK } from "./style";
 
-// Helper component to explicitly update Leaflet's camera center
+// Helper component to explicitly update Leaflet's camera center based on data loads
 function RecenterMap({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
@@ -33,6 +33,49 @@ function RecenterMap({ center }: { center: [number, number] }) {
     }
   }, [center, map]);
   return null;
+}
+
+// Self-contained component to handle Browser Geolocation safely inside the Leaflet context
+function UserLocationMarker() {
+  const map = useMap();
+  const [position, setPosition] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setPosition(coords);
+        map.setView(coords, 14); // Centers map on the admin's device location
+      },
+      (error) => {
+        console.warn("Browser Geolocation permission denied or unavailable:", error.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [map]);
+
+  if (!position) return null;
+
+  return (
+    <CircleMarker
+      center={position}
+      radius={8}
+      pathOptions={{
+        color: "#ffff00",     
+        fillColor: "ffff00",
+        fillOpacity: 0.9,
+        weight: 3,
+      }}
+    >
+      <Popup>
+        <span style={{ fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 600, color: "#4F46E5" }}>
+          📍 Вашата моментална локација
+        </span>
+      </Popup>
+    </CircleMarker>
+  );
 }
 
 interface StatCardProps {
@@ -66,7 +109,7 @@ function StatusBadge({ status }: { status: string }) {
         color: STATUS_COLORS[status] || "#64748B",
       }}
     >
-      ={STATUS_MK[status] || status}
+      {STATUS_MK[status] || status}
     </span>
   );
 }
@@ -84,7 +127,6 @@ export default function DashboardPage() {
     handleRowClick,
   } = useDashboardLogic();
 
-  // Color cycles for chart visualization
   const chartColors = ["#38BDF8", "#6366F1", "#22C55E", "#F59E0B", "#EF4444"];
 
   return (
@@ -157,6 +199,8 @@ export default function DashboardPage() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
               <RecenterMap center={mapCenter} />
+              <UserLocationMarker /> {/* Live browser location engine */}
+              
               {heatmap?.map((point: HeatmapPoint) => (
                 <CircleMarker
                   key={point.report_id}
