@@ -3,7 +3,7 @@ from datetime import datetime
 
 
 class RoutingCreate(BaseModel):
-    municipality_id: int
+    municipality_id: int | None = None 
     category_id: int
     routing_email: EmailStr
     department_name: str | None = None
