@@ -27,7 +27,9 @@ export interface RoutingForm {
 export interface CityForm { name: string; country: string }
 export interface MunicipalityForm { name: string; city_id: string }
 
+
 // Shared Routing Logic 
+
 
 export function useRoutingLogic(fixedMunicipalityId?: number) {
   const queryClient = useQueryClient()
@@ -178,7 +180,8 @@ export function useRoutingLogic(fixedMunicipalityId?: number) {
   }
 }
 
-// Municipality Admin Logic
+// Municipality Admin Logic 
+
 
 export function useMunicipalityAdminLogic() {
   const [activeTab, setActiveTab] = useState<'categories' | 'routing'>('categories')
@@ -196,8 +199,14 @@ export function useMunicipalityAdminLogic() {
     },
   })
 
-  const municipalityId: number | undefined = municipalities?.[0]?.id
-  const municipalityName: string | undefined = municipalities?.[0]?.name
+  const storedUser = localStorage.getItem('user')
+  const currentUser = storedUser ? JSON.parse(storedUser) : null
+  
+  const municipalityId: number | undefined = currentUser?.municipality_id
+  
+  const municipalityName: string | undefined = municipalities?.find(
+    (m: any) => m.id === municipalityId
+  )?.name || municipalities?.[0]?.name
 
   const routingLogic = useRoutingLogic(municipalityId)
 
@@ -216,7 +225,9 @@ export function useMunicipalityAdminLogic() {
   }
 }
 
+
 // Superadmin Logic
+
 
 export function useSuperAdminLogic() {
   const queryClient = useQueryClient()

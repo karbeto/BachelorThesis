@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     role: UserRole
     is_active: bool
     created_at: datetime
+    municipality_id: int | None = None
 
     model_config = {"from_attributes": True}
 

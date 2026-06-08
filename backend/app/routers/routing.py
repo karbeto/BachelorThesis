@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 from app.database import get_db
 from app.models.municipality_category_routing import (
     MunicipalityCategoryRouting)
@@ -71,9 +71,31 @@ async def list_routings(
     municipality_id: int | None = None,
     category_id: int | None = None,
     db: AsyncSession = Depends(get_db),
-    _: object = Depends(get_current_superadmin),
+    current_user: any = Depends(get_current_admin),
 ):
     query = select(MunicipalityCategoryRouting)
+    
+    if current_user.role != "superadmin":
+        emp_query = await db.execute(
+            text("SELECT municipality_id FROM municipality_employees WHERE user_id = :u_id"),
+            {"u_id": current_user.id}
+        )
+        user_municipality_id = emp_query.scalar_one_or_none()
+        
+        if user_municipality_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin account is not assigned to any municipality layout."
+            )
+        
+        if municipality_id and municipality_id != user_municipality_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to view configurations for this municipality."
+            )
+            
+        municipality_id = user_municipality_id
+
     if municipality_id:
         query = query.where(
             MunicipalityCategoryRouting.municipality_id == municipality_id
@@ -82,6 +104,7 @@ async def list_routings(
         query = query.where(
             MunicipalityCategoryRouting.category_id == category_id
         )
+        
     result = await db.execute(query)
     return [
         RoutingResponse.model_validate(r)

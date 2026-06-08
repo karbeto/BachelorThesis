@@ -1,7 +1,7 @@
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.schemas.user import (UserRegister,
@@ -100,5 +100,15 @@ async def login(
 @router.get("/me", response_model=UserResponse)
 async def get_me(
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    return UserResponse.model_validate(current_user)
+    emp_query = await db.execute(
+        text("SELECT municipality_id FROM municipality_employees WHERE user_id = :u_id"),
+        {"u_id": current_user.id}
+    )
+    municipality_id = emp_query.scalar_one_or_none()
+    
+    response_data = UserResponse.model_validate(current_user)
+    response_data.municipality_id = municipality_id
+    
+    return response_data
