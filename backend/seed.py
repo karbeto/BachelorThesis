@@ -4,7 +4,7 @@ Run: python -m app.seed
 """
 import asyncio
 from sqlalchemy import select
-from app.database import AsyncSessionLocal
+from app.database import AsyncSessionLocal, engine
 from app.models.city import City
 from app.models.municipality import Municipality
 from app.models.municipality_employee import MunicipalityEmployee
@@ -14,11 +14,10 @@ from app.models.municipality_category_routing import MunicipalityCategoryRouting
 from app.core.security import hash_password
 
 
-# ── Seed Data — Veles Only ───────────────────────────────────────────────────
 
-CITY = {"name": "Veles", "country": "Macedonia"}
+CITY = {"name": "Велес", "country": "Macedonia"}
 
-MUNICIPALITY = {"name": "Veles"}
+MUNICIPALITY = {"name": "Општина Велес"}
 
 CATEGORIES = [
     {
@@ -51,7 +50,6 @@ CATEGORIES = [
     },
 ]
 
-# Email routing for Veles — one email per category per responsible department
 ROUTING = [
     {
         "category": "Дупки на патот",
@@ -66,7 +64,7 @@ ROUTING = [
     {
         "category": "Осветлување",
         "email": "elektro@veles.gov.mk",
-        "dept": "ЈП Електродистрибуција",
+        "dept": "Општински Сектор за Енергетика",
     },
     {
         "category": "Нелегално паркирање",
@@ -93,38 +91,38 @@ ROUTING = [
 USERS = [
     {
         "email": "superadmin@civic.mk",
-        "password": "Admin123!",
+        "password_raw": "Admin123!",
         "full_name": "Супер Администратор",
         "role": UserRole.superadmin,
-        "is_employee": False,
-        "department": None,
     },
     {
-        "email": "admin@veles.gov.mk",
-        "password": "Veles123!",
-        "full_name": "Администратор Велес",
+        "email": "admin@veles.mk",
+        "password_hash": "$2b$12$04T1/MnurQnvAGA9N2QbmeBXJrikg8U/RCB7u3w5A6nySBi0EAMBy", 
+        "full_name": "Кристијан Карбевски",
         "role": UserRole.municipality_admin,
-        "is_employee": True,
-        "department": "Општинска администрација",
     },
     {
         "email": "graganin@test.mk",
-        "password": "Test123!",
+        "password_raw": "Test123!",
         "full_name": "Тест Граѓанин",
         "role": UserRole.citizen,
-        "is_employee": False,
-        "department": None,
     },
 ]
 
+MUNICIPALITY_EMPLOYEES = [
+    {
+        "user_id": 1,
+        "municipality_id": 1,
+        "department": "Општинска администрација",
+    }
+]
 
-# ── Seeder ───────────────────────────────────────────────────────────────────
+
 
 async def seed():
     async with AsyncSessionLocal() as db:
-        print("\n🌱 Starting database seed for Велес pilot...\n")
+        print("\n🌱 Starting database seed matched with exact SQL row definitions...\n")
 
-        # ── City ──
         print("📍 Seeding city...")
         existing = await db.execute(select(City).where(City.name == CITY["name"]))
         city = existing.scalar_one_or_none()
@@ -132,12 +130,10 @@ async def seed():
             city = City(**CITY)
             db.add(city)
             await db.flush()
-            print(f"   ✓ {city.name}")
+            print(f"   ✓ {city.name} (Created)")
         else:
-            print(f"   ~ {city.name} (already exists)")
-        await db.commit()
+            print(f"   ~ {city.name} (Detected existing row)")
 
-        # ── Municipality ──
         print("\n🏛️  Seeding municipality...")
         existing = await db.execute(
             select(Municipality).where(Municipality.name == MUNICIPALITY["name"])
@@ -147,12 +143,10 @@ async def seed():
             mun = Municipality(name=MUNICIPALITY["name"], city_id=city.id)
             db.add(mun)
             await db.flush()
-            print(f"   ✓ {mun.name}")
+            print(f"   ✓ {mun.name} (Created)")
         else:
-            print(f"   ~ {mun.name} (already exists)")
-        await db.commit()
+            print(f"   ~ {mun.name} (Detected existing row)")
 
-        # ── Categories ──
         print("\n🏷️  Seeding categories...")
         cat_map: dict[str, Category] = {}
         for c in CATEGORIES:
@@ -168,9 +162,7 @@ async def seed():
             else:
                 print(f"   ~ {cat.name} (already exists)")
             cat_map[cat.name] = cat
-        await db.commit()
 
-        # ── Email Routing ──
         print("\n📧 Seeding email routing for Велес...")
         for r in ROUTING:
             cat = cat_map.get(r["category"])
@@ -193,60 +185,64 @@ async def seed():
                 print(f"   ✓ {r['category']} → {r['email']} ({r['dept']})")
             else:
                 print(f"   ~ {r['category']} (already exists)")
-        await db.commit()
 
-        # ── Users ──
         print("\n👤 Seeding users...")
         for u in USERS:
-            existing = await db.execute(
+            existing_user = await db.execute(
                 select(User).where(User.email == u["email"])
             )
-            user = existing.scalar_one_or_none()
+            user = existing_user.scalar_one_or_none()
+            
             if not user:
+                final_password = u.get("password_hash") or hash_password(u["password_raw"])
                 user = User(
                     email=u["email"],
-                    password=hash_password(u["password"]),
+                    password=final_password,
                     full_name=u["full_name"],
                     role=u["role"],
                     is_active=True,
                 )
                 db.add(user)
                 await db.flush()
-
-                if u["is_employee"]:
-                    employee = MunicipalityEmployee(
-                        user_id=user.id,
-                        municipality_id=mun.id,
-                        department=u["department"],
-                    )
-                    db.add(employee)
-                    await db.flush()
-
-                print(f"   ✓ {user.email} ({user.role.value})")
+                print(f"   ✓ User {user.email} (Created)")
             else:
-                print(f"   ~ {u['email']} (already exists)")
-        await db.commit()
+                print(f"   ~ User {user.email} (Detected existing row)")
 
-        # ── Summary ──
-        print("\n✅ Seed complete!\n")
-        print("=" * 60)
-        print("  ВЕЛЕС PILOT — Test Accounts")
-        print("=" * 60)
-        for u in USERS:
-            role_label = {
-                UserRole.superadmin: "Супер Админ    ",
-                UserRole.municipality_admin: "Општина Админ  ",
-                UserRole.citizen: "Граѓанин       ",
-            }[u["role"]]
-            print(f"  {role_label}  {u['email']:<30}  {u['password']}")
-        print("=" * 60)
-        print(f"\n  City ID       : 1 (Велес)")
-        print(f"  Municipality  : 1 (Општина Велес)")
-        print(f"  Categories    : {len(CATEGORIES)}")
-        print(f"  Email routes  : {len(ROUTING)}")
-        print("=" * 60)
-        print()
+        print("\n💼 Seeding municipality employees...")
+        for emp_data in MUNICIPALITY_EMPLOYEES:
+            existing_emp = await db.execute(
+                select(MunicipalityEmployee).where(
+                    MunicipalityEmployee.user_id == emp_data["user_id"],
+                    MunicipalityEmployee.municipality_id == emp_data["municipality_id"]
+                )
+            )
+            emp = existing_emp.scalar_one_or_none()
+            
+            if not emp:
+                employee = MunicipalityEmployee(
+                    user_id=emp_data["user_id"],
+                    municipality_id=emp_data["municipality_id"],
+                    department=emp_data["department"],
+                )
+                db.add(employee)
+                await db.flush()
+                print(f"   ✓ Employee relationship inserted: user_id={emp_data['user_id']}, municipality_id={emp_data['municipality_id']}")
+            else:
+                print(f"   ~ Employee relationship already exists for user_id={emp_data['user_id']}")
+
+        print("\n💾 Committing changes...")
+        await db.commit()
+        print("✅ Database perfectly synced with manual SQL setup!")
+
+
+async def main():
+    try:
+        await seed()
+    finally:
+        print("🔌 Disposing connection pool...")
+        await engine.dispose()
+        print("👋 Process complete.")
 
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    asyncio.run(main())
