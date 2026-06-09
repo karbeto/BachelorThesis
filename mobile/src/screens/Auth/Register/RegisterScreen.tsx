@@ -50,7 +50,7 @@ export default function RegisterScreen({ navigation }: any) {
             <View style={styles.logoCircle}>
               <View style={styles.logoInner} />
             </View>
-            <Text style={styles.title}>Креирај акаунт</Text>
+            <Text style={styles.title}>Креирај профил</Text>
             <Text style={styles.subtitle}>Придружи се и пријавувај проблеми</Text>
           </View>
 

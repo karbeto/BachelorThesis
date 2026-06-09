@@ -91,7 +91,7 @@ export default function LoginScreen({ navigation }: any) {
 
           {/* Footer Section */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Немаш акаунт?</Text>
+            <Text style={styles.footerText}>Немаш профил?</Text>
             <TouchableOpacity onPress={goToRegister} activeOpacity={0.7}>
               <Text style={styles.footerLink}>Регистрирај се</Text>
             </TouchableOpacity>
