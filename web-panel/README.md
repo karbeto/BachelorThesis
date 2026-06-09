@@ -1,16 +1,96 @@
-# React + Vite
+# 🏛️ Civic Platform — Web Admin Panel
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ React веб-панел наменет за супер-администратори и општински администратори. Оваа апликација служи како централен оперативен систем каде локалните власти можат да ги следат пријавите на граѓаните на интерактивна мапа, да управуваат со статусите на дефектите, да прегледуваат предлози за локални иновации и да менаџираат со тенантите (општините) и корисничките сметки.
 
-Currently, two official plugins are available:
+## 📋 Содржина
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- [Технологии](#технологии)
+- [Структура на проектот](#структура-на-проектот)
+- [Инсталација и инсталациски чекори](#инсталација-и-инсталациски-чекори)
+- [Конфигурација (.env)](#конфигурација-env)
+- [Стартување на развојна и продукциска околина](#стартување-на-развојна-и-продукциска-околина)
+- [Автентикација и Безбедносни Пресретнувачи](#автентикација-и-безбедносни-пресретнувачи)
+- [Детален преглед на функционалности](#детален-преглед-на-функционалности)
+- [Статус кодови при комуникација со API](#статус-кодови-при-комуникација-со-api)
 
-## React Compiler
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Технологии
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+| Пакет | Верзија | Намена |
+|---|---|---|
+| **React** | `^18.3.1` | Основна библиотека за изградба на корисничкиот интерфејс |
+| **Vite** | `^5.4.1` | Развојна околина и бундлер оптимизиран за брз HMR |
+| **TypeScript** | `~5.6.2` | Строго типизиран јазик за заштита на податочните структури |
+| **Axios** | `^1.7.9` | HTTP клиент за асинхрона мрежна комуникација со REST API-то |
+| **Tailwind CSS** | `^3.4.17` | Utility-first CSS рамка за брзо и конзистентно стилизирање |
+| **Lucide React** | `^0.469.0` | Комплет на векторски икони користени низ интерфејсот |
+
+---
+
+## Структура на проектот
+
+- `src/` — Основен React извор
+- `src/api/` — HTTP клиент и service wrappers (види [src/api/client.js](src/api/client.js#L1))
+- `src/components/` — Компоненти и UI
+- `src/pages/` — Pages / routes
+- `src/assets/` — Слики и статички ресурси
+- `public/` — Публични датотеки
+
+## Инсталација и инсталациски чекори
+
+1. Инсталирајте зависности во папката `web-panel`:
+
+```bash
+npm install
+```
+
+2. Креирајте `.env` (или `.env.local`) со потребните променливи (пример подолу).
+
+### Пример `.env` (во `web-panel`):
+
+```
+VITE_API_URL=http://YOUR_LOCAL_IP:8000
+```
+
+Вредностите се читаат преку `import.meta.env.VITE_API_URL` во клиентот.
+
+## Достапни скрипти (од `package.json`)
+
+- `npm run dev` — Стартува Vite развојниот сервер
+- `npm run build` — Гради production пакет
+- `npm run preview` — Преглед на production билд локално
+
+Пример за стартување на развојна средина:
+
+```bash
+npm run dev
+# Потоа отвори http://localhost:5173
+```
+
+## Автентикација и пресретнувачи
+
+Клиентот го користи `axios` и го чита `VITE_API_URL` од `import.meta.env`. Тековната имплементација најавена во `src/api/client.js`:
+
+- Додава `Authorization: Bearer <token>` ако `localStorage.token` постои.
+- Ако серверот врати `401`, интерцепторот ја брише `token` и `user` од `localStorage` и пренасочува на `/login`.
+
+Ова значи дека: осигурете се дека backend-от враќа соодветни статуси и дека фронтендот сочува JWT токен во `localStorage` по успешна најава.
+
+## Детален преглед на функционалности
+
+-Контролна табла (Dashboard): Првиот екран по најавата кој агрегира клучни информации во реално време. Користи StatCard компоненти за да го прикаже соодносот на вкупните пријави распределени како поднесени, во процес на решавање или комплетно затворени проблеми.
+-Модул за урбани дефекти (Reports): Јадрото на панелот кое ги прикажува сите пријави од терен. Содржи филтри за динамично селектирање по статус, категорија на дефект и соодветна општина. Има вградена мапа која геопросторните PostGIS координати од базата ги рендерира како пинови за инстантна визуелна детекција на локацијата.
+-Менаџмент на статус (UpdateStatusModal): Му овозможува на администраторот соодветно да управува со животниот циклус на дефектот. Промената на состојбата во resolving или resolved/rejected испраќа барање до бекендот, кој потоа преку SMTP серверот врши автоматско емаил известен информирање до граѓанинот и службите.
+- Управување со категории, општини и корисници
+- Известувања и логика за гласови/рангирање
+
+## Статус кодови при комуникација со API
+
+- `200` / `201` — Успешен одговор
+- `400` — Лош/невалиден барање (client-side validation)
+- `401` — Неовластен (token missing/invalid) — фронтенд го чисти session и редиректира на `/login`
+- `403` — Забрането (недостаток на права)
+- `404` — Ресурс не е пронајден
+- `5xx` — Серверска грешка
