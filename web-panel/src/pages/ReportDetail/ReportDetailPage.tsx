@@ -1,11 +1,12 @@
+import React from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   ChevronLeft,
   MapPin,
   Calendar,
   User,
-  Mail,
   RefreshCw,
+  Layers,
 } from "lucide-react";
 import L from "leaflet";
 import {
@@ -92,6 +93,10 @@ export default function ReportDetailPage() {
           }
           .leaflet-top, .leaflet-bottom { 
             z-index: 2 !important; 
+          }
+          .evidence-card:hover {
+            border-color: #CBD5E1 !important;
+            background: #FFFFFF !important;
           }
 `}</style>
 
@@ -191,7 +196,7 @@ export default function ReportDetailPage() {
             </div>
           )}
 
-          {/* Images */}
+          {/* Primary Images */}
           {report.images?.length > 0 && (
             <div style={styles.card}>
               <div style={styles.cardTitle}>Фотографии</div>
@@ -206,6 +211,99 @@ export default function ReportDetailPage() {
                       window.open(`${BASE_URL}${img.image_url}`, "_blank")
                     }
                   />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 🌟 NESTED SUB-REPORTS AND EVIDENCE CONTAINER */}
+          {report.duplicates && report.duplicates.length > 0 && (
+            <div style={{ ...styles.card, marginTop: 16 }}>
+              <div
+                style={{
+                  ...styles.cardTitle,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Layers size={15} color="#3B82F6" />
+                Поврзани пријави
+                <span
+                  style={{
+                    fontSize: 11,
+                    background: "#EFF6FF",
+                    color: "#2563EB",
+                    padding: "2px 8px",
+                    borderRadius: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  +{report.duplicates.length}
+                </span>
+              </div>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
+                {report.duplicates.map((dup: any) => (
+                  <div
+                    key={dup.id}
+                    className="evidence-card"
+                    style={{
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 8,
+                      padding: 14,
+                      background: "#F8FAFC",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {/* Header meta line info */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 10,
+                        borderBottom: "1px dashed #E2E8F0",
+                        paddingBottom: 6,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, color: "#334155" }}>
+                        <User size={13} color="#94A3B8" />
+                        {dup.user_full_name || "Анонимен граѓанин"}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#94A3B8" }}>
+                        <Calendar size={12} />
+                        {new Date(dup.created_at).toLocaleString("mk-MK")}
+                      </div>
+                    </div>
+
+                    {/* Specific nested alternative description snippet */}
+                    <p style={{ fontSize: 13, color: "#475569", lineHeight: "1.5", margin: "0 0 10px 0" }}>
+                      {dup.description || "Поднесено само како глас за автентичност без дополнителен коментар."}
+                    </p>
+
+                    {/* Alternative Image Track row mapping */}
+                    {dup.images && dup.images.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                        {dup.images.map((img: any) => (
+                          <img
+                            key={img.id}
+                            src={`${BASE_URL}${img.image_url}`}
+                            alt="child-evidence"
+                            style={{
+                              width: 64,
+                              height: 64,
+                              borderRadius: 6,
+                              objectFit: "cover",
+                              cursor: "pointer",
+                              border: "1px solid #CBD5E1",
+                            }}
+                            onClick={() => window.open(`${BASE_URL}${img.image_url}`, "_blank")}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -256,7 +354,7 @@ export default function ReportDetailPage() {
                   key={i}
                   style={{
                     ...styles.infoRow,
-                    ...(i === 9 ? { borderBottom: "none" } : {}),
+                    ...(i === 7 ? { borderBottom: "none" } : {}),
                   }}
                 >
                   <span style={styles.infoLabel}>{label}</span>

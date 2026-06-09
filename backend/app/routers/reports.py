@@ -6,7 +6,7 @@ from fastapi import (
     status, UploadFile, File, Form,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, update
 from geoalchemy2.functions import ST_DWithin, ST_GeomFromText
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
@@ -22,11 +22,14 @@ from app.models.municipality import Municipality
 from app.models.notification import Notification
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.models.user import User
+from datetime import datetime
+    
 from app.schemas.report import (
     ReportResponse,
     ReportStatusUpdate,
     ReportImageResponse,       
     ReportStatusHistoryResponse,
+    DuplicateSubReportResponse,
 )
 from app.core.dependencies import get_current_user, get_current_admin
 from app.services.ai import classify_report, encode_image_to_base64
@@ -72,7 +75,6 @@ async def get_report_images(
     return list(result.scalars().all())
 
 
-# UPDATED: Added current_user_id to check relationship tables
 async def build_report_response(
     report: Report, db: AsyncSession, current_user_id: int | None = None
 ) -> ReportResponse:
@@ -136,6 +138,34 @@ async def build_report_response(
         )
         is_rated = rating_check.scalar_one_or_none() is not None
 
+    duplicates_data = []
+    if not report.is_duplicate:
+        child_result = await db.execute(
+            select(Report)
+            .where(Report.parent_report_id == report.id)
+            .order_by(Report.created_at.desc())
+        )
+        children = child_result.scalars().all()
+        
+        for child in children:
+            child_images = await get_report_images(child.id, db)
+            child_user_name = None
+            if child.user_id:
+                u_res = await db.execute(
+                    select(User.full_name).where(User.id == int(child.user_id))
+                )
+                child_user_name = u_res.scalar_one_or_none()
+                
+            duplicates_data.append(
+                DuplicateSubReportResponse(
+                    id=child.id,
+                    user_full_name=child_user_name,
+                    description=child.description,
+                    images=[ReportImageResponse.model_validate(img) for img in child_images],
+                    created_at=child.created_at
+                )
+            )
+
     return ReportResponse(
         id=report.id,
         title=report.title,
@@ -155,10 +185,11 @@ async def build_report_response(
         longitude=longitude,
         images=[ReportImageResponse.model_validate(img) for img in images],
         vote_count=vote_count,
-        is_voted_by_me=is_voted_by_me, # Injected
-        is_rated=is_rated,             # Injected
+        is_voted_by_me=is_voted_by_me,
+        is_rated=is_rated,        
         created_at=report.created_at,
         updated_at=report.updated_at,
+        duplicates=duplicates_data, 
     )
 
 
@@ -297,6 +328,20 @@ async def submit_report(
     db.add(report)
     await db.flush()
     await db.refresh(report)
+    if is_duplicate and parent_report_id:
+        existing_vote = await db.execute(
+            select(ReportVote).where(
+                ReportVote.report_id == parent_report_id,
+                ReportVote.user_id == current_user.id
+            )
+        )
+        if not existing_vote.scalar_one_or_none():
+            duplicate_vote = ReportVote(
+                report_id=parent_report_id,
+                user_id=current_user.id
+            )
+            db.add(duplicate_vote)
+            await db.flush()
 
     if image_bytes and image_filename:
         file_path = UPLOAD_DIR / image_filename
@@ -444,6 +489,16 @@ async def update_report_status(
     report.status = payload.status
     await db.flush()
 
+    await db.execute(
+        update(Report)
+        .where(Report.parent_report_id == report.id)
+        .values(
+            status=payload.status,
+            updated_at=datetime.utcnow()
+        )
+    )
+    await db.flush()
+
     history = ReportStatusHistory(
         report_id=report.id,
         changed_by=current_user.id,
@@ -492,8 +547,8 @@ async def update_report_status(
 
     await db.commit()
     await db.refresh(report)
+    
     return await build_report_response(report, db, current_user.id)
-
 
 @router.get(
     "/{report_id}/history",

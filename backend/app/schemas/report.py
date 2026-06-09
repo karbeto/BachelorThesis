@@ -31,6 +31,16 @@ class ReportImageResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DuplicateSubReportResponse(BaseModel):
+    id: int
+    user_full_name: str | None = None
+    description: str | None = None
+    images: list[ReportImageResponse] = []
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+    
+    
 class ReportResponse(BaseModel):
     id: int
     title: str
@@ -54,6 +64,8 @@ class ReportResponse(BaseModel):
     is_rated: bool = False        
     created_at: datetime
     updated_at: datetime
+    
+    duplicates: list[DuplicateSubReportResponse] = []
 
     model_config = {"from_attributes": True}
 

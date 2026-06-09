@@ -31,7 +31,9 @@ async def vote_report(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Report not found",
         )
-
+        
+    target_report_id = report.parent_report_id if report.is_duplicate and report.parent_report_id else report.id
+    
     existing = await db.execute(
         select(ReportVote).where(
             ReportVote.report_id == report_id,
@@ -46,7 +48,7 @@ async def vote_report(
 
     vote = ReportVote(report_id=report_id, user_id=current_user.id)
     db.add(vote)
-    await db.flush()
+    await db.commit()
     await db.refresh(vote)
     return ReportVoteResponse.model_validate(vote)
 
