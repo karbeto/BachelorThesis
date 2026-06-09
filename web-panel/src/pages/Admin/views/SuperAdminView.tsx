@@ -76,7 +76,14 @@ export function SuperAdminView() {
       )}
 
       {activeTab === 'municipalities' && (
-        <GeographicManagement mode="municipalities" data={municipalities} isLoading={municipalitiesLoading} onOpenModal={() => setMunicipalityModalOpen(true)} onDelete={handleDeleteMunicipality} />
+        <GeographicManagement 
+          mode="municipalities" 
+          data={municipalities} 
+          cities={cities} // <-- Passed down here to perform the client-side ID to Name transformation
+          isLoading={municipalitiesLoading} 
+          onOpenModal={() => setMunicipalityModalOpen(true)} 
+          onDelete={handleDeleteMunicipality} 
+        />
       )}
 
       {/* Modals for Category, City, Municipality Creation/Edits */}
@@ -130,7 +137,7 @@ export function SuperAdminView() {
             <div style={styles.modalTitle}>Додај општина</div>
             <div style={styles.fieldWrap}>
               <label style={styles.label}>Име *</label>
-              <input style={styles.input} placeholder="пр. Општина Велес" value={municipalityForm.name} onChange={(e) => setMunicipalityForm((p) => ({ ...p, name: e.target.value }))} />
+              <input style={styles.input} placeholder="пр. Centar" value={municipalityForm.name} onChange={(e) => setMunicipalityForm((p) => ({ ...p, name: e.target.value }))} />
             </div>
             <div style={styles.fieldWrap}>
               <label style={styles.label}>Град *</label>
@@ -159,6 +166,7 @@ export function SuperAdminView() {
         isSubmitting={isRoutingSubmitting}
         categories={routingCategories}
         municipalities={routingMunicipalities}
+        cities={cities}
         isMunicipalityAdmin={false}
       />
     </div>

@@ -19,6 +19,7 @@ interface RoutingModalProps {
   isSubmitting: boolean;
   categories: OptionItem[];
   municipalities: OptionItem[];
+  cities?: any[];
   isMunicipalityAdmin?: boolean;
 }
 
