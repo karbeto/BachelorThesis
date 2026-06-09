@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
+from datetime import datetime, timezone
+
 from app.database import get_db
 from app.models.report_rating import ReportRating
 from app.models.report import Report, ReportStatus
+from app.models.report_status_history import ReportStatusHistory 
 from app.schemas.rating import ReportRatingCreate, ReportRatingResponse
 from app.core.dependencies import get_current_user
 from app.models.user import User
@@ -37,6 +40,12 @@ async def rate_report(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You can only rate resolved reports",
         )
+        
+    if report.parent_report_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Rating is only allowed for the master report. Duplicate reports cannot be rated individually.",
+        )
 
     if report.user_id != current_user.id:
         raise HTTPException(
@@ -64,6 +73,49 @@ async def rate_report(
     )
     db.add(rating)
     await db.flush()
+
+    if payload.rating in [1, 2]:
+        current_time = datetime.now(timezone.utc)
+        
+        report.status = ReportStatus.submitted
+        report.updated_at = current_time
+        
+        master_history = ReportStatusHistory(
+            report_id=report.id,
+            changed_by=current_user.id,
+            old_status=ReportStatus.resolved.value,
+            new_status=ReportStatus.submitted.value,
+            note=f"Системска реверзија: Пријавата е автоматски вратена во статус 'Поднесено' поради ниска оцена од ({payload.rating} ѕвезди) од граѓанинот.",
+        )
+        db.add(master_history)
+        
+        await db.execute(
+            update(Report)
+            .where(Report.parent_report_id == report.id)
+            .values(
+                status=ReportStatus.submitted,
+                updated_at=current_time
+            )
+        )
+        
+        child_res = await db.execute(
+            select(Report.id).where(Report.parent_report_id == report.id)
+        )
+        child_ids = child_res.scalars().all()
+        
+        for child_id in child_ids:
+            child_history = ReportStatusHistory(
+                report_id=child_id,
+                changed_by=current_user.id,
+                old_status=ReportStatus.resolved.value,
+                new_status=ReportStatus.submitted.value,
+                note=f"Каскадна реверзија од матична пријава #{report.id} поради ниска оценa од граѓанинот.",
+            )
+            db.add(child_history)
+
+        await db.flush()
+
+    await db.commit()
     await db.refresh(rating)
     return ReportRatingResponse.model_validate(rating)
 

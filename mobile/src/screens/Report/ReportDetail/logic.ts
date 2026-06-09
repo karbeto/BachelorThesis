@@ -98,7 +98,7 @@ export function useReportDetailLogic() {
   const canRate =
     user?.id === report?.user_id &&
     report?.status === "resolved" &&
-    !report?.is_rated;
+    !report?.is_rated && !report?.is_duplicate;
 
   return {
     report,

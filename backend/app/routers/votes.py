@@ -23,31 +23,35 @@ async def vote_report(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    report = await db.execute(
+    result = await db.execute(
         select(Report).where(Report.id == report_id)
     )
-    if not report.scalar_one_or_none():
+    
+    report_obj = result.scalar_one_or_none()
+    
+    if not report_obj:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Report not found",
         )
         
-    target_report_id = report.parent_report_id if report.is_duplicate and report.parent_report_id else report.id
+    target_report_id = report_obj.parent_report_id if report_obj.is_duplicate and report_obj.parent_report_id else report_obj.id
     
     existing = await db.execute(
         select(ReportVote).where(
-            ReportVote.report_id == report_id,
+            ReportVote.report_id == target_report_id,
             ReportVote.user_id == current_user.id,
         )
     )
     if existing.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Already voted for this report",
+            detail="Имате гласано за овој извештај/оригиналниот",
         )
 
-    vote = ReportVote(report_id=report_id, user_id=current_user.id)
+    vote = ReportVote(report_id=target_report_id, user_id=current_user.id)
     db.add(vote)
+    
     await db.commit()
     await db.refresh(vote)
     return ReportVoteResponse.model_validate(vote)
