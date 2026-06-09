@@ -205,6 +205,7 @@ async def find_duplicate(
             Report.category_id == category_id,
             Report.is_duplicate == False,  # noqa: E712
             Report.status != ReportStatus.rejected,
+            Report.status != ReportStatus.resolved,
             func.ST_DWithin(
                 func.cast(Report.location, Geography),
                 func.cast(ST_GeomFromText(point_wkt, 4326), Geography),
