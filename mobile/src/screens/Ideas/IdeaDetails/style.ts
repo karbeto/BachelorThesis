@@ -1,0 +1,171 @@
+import { StyleSheet } from 'react-native'
+import { Theme } from '../../../constants/theme'
+
+export const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingWrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.md,
+      paddingTop: 56,
+      paddingBottom: theme.spacing.md,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      gap: theme.spacing.md,
+    },
+    backBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: theme.borderRadius.full,
+      backgroundColor: theme.colors.surfaceVariant,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerTitle: {
+      ...theme.typography.h3,
+      color: theme.colors.text,
+      flex: 1,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      padding: theme.spacing.md,
+      gap: theme.spacing.md,
+      paddingBottom: theme.spacing.xxl,
+    },
+    titleCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.large,
+      padding: theme.spacing.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      gap: theme.spacing.sm,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: theme.spacing.sm,
+    },
+    ideaTitle: {
+      ...theme.typography.h3,
+      color: theme.colors.text,
+      flex: 1,
+    },
+    statusBadge: {
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.borderRadius.full,
+      flexShrink: 0,
+    },
+    statusText: {
+      ...theme.typography.small,
+      fontWeight: '600',
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.md,
+      flexWrap: 'wrap',
+    },
+    metaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    metaText: {
+      ...theme.typography.small,
+      color: theme.colors.textSecondary,
+    },
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.large,
+      padding: theme.spacing.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      gap: theme.spacing.sm,
+    },
+    cardLabel: {
+      ...theme.typography.small,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    descText: {
+      ...theme.typography.body,
+      color: theme.colors.text,
+      lineHeight: 24,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.surfaceVariant,
+    },
+    infoLabel: {
+      ...theme.typography.small,
+      color: theme.colors.textSecondary,
+      fontWeight: '500',
+    },
+    infoValue: {
+      ...theme.typography.small,
+      color: theme.colors.text,
+      fontWeight: '500',
+      flex: 1,
+      textAlign: 'right',
+    },
+    voteBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing.sm,
+      height: 52,
+      borderRadius: theme.borderRadius.medium,
+      borderWidth: 1.5,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadows.light,
+    },
+    voteBtnActive: {
+      borderColor: theme.colors.accent,
+      backgroundColor: theme.colors.accent + '15',
+    },
+    voteBtnText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.text,
+    },
+    voteBtnTextActive: {
+      color: theme.colors.accent,
+    },
+    supportPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+      alignSelf: 'flex-start',
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.borderRadius.full,
+      backgroundColor: theme.colors.info + '15',
+    },
+    supportText: {
+      ...theme.typography.small,
+      fontWeight: '600',
+      color: theme.colors.info,
+    },
+  })

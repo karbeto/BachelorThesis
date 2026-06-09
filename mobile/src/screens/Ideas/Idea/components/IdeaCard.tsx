@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { STATUS_COLORS, STATUS_MK } from "../logic";
 
 interface IdeaCardProps {
@@ -18,10 +19,15 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({
   styles,
   theme,
 }) => {
+  const navigation = useNavigation<any>();
   const s = STATUS_COLORS[idea.status] || { bg: "#F1F5F9", color: "#64748B" };
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("IdeaDetail", { id: idea.id })}
+      activeOpacity={0.75}
+    >
       <View style={styles.cardTop}>
         <Text style={styles.cardTitle} numberOfLines={2}>
           {idea.title}
@@ -44,7 +50,10 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({
 
         <TouchableOpacity
           style={[styles.voteBtn, voted && styles.voteBtnActive]}
-          onPress={onVote}
+          onPress={(e) => {
+            e.stopPropagation?.()
+            onVote()
+          }}
           activeOpacity={0.75}
         >
           <Ionicons
@@ -57,6 +66,6 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };

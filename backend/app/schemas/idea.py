@@ -27,6 +27,7 @@ class IdeaResponse(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     vote_count: int = 0
+    voted_by_user: bool = False
     created_at: datetime
     updated_at: datetime
 

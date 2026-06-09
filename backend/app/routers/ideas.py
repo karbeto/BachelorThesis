@@ -155,6 +155,18 @@ async def list_ideas(
     ]
 
 
+@router.get("/my-votes", response_model=list[int])
+async def get_my_votes(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(IdeaVote.idea_id).where(
+            IdeaVote.user_id == current_user.id
+        )
+    )
+    return list(result.scalars().all())
+
 @router.get("/{idea_id}", response_model=IdeaResponse)
 async def get_idea(
     idea_id: int,
@@ -179,7 +191,11 @@ async def get_idea(
     idea, municipality_name, user_full_name = row
     
     user_role = current_user.role.value if hasattr(current_user.role, "value") else current_user.role
-    if user_role != "superadmin":
+    
+    if user_role == "citizen":
+        pass
+        
+    elif user_role != "superadmin":
         emp_query = await db.execute(
             text("SELECT municipality_id FROM municipality_employees WHERE user_id = :u_id"),
             {"u_id": current_user.id}
@@ -197,7 +213,6 @@ async def get_idea(
     vote_count = vote_result.scalar() or 0
     
     return build_idea_response(idea, municipality_name, user_full_name, vote_count)
-
 
 @router.patch("/{idea_id}/status", response_model=IdeaResponse)
 async def update_idea_status(
@@ -296,3 +311,4 @@ async def unvote_idea(
     await db.delete(vote)
     await db.commit() 
     return None
+

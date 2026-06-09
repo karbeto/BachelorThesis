@@ -9,6 +9,7 @@ interface GenericEmptyStateProps {
   subtitle: string
   btnText?: string 
   onPress?: () => void
+  style?: any
   theme: any 
 }
 

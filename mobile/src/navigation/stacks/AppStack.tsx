@@ -1,14 +1,15 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import MainTabs from '../MainTabs'
-import SubmitReportScreen from '../../screens/Report/SubmitReport/SubmitReportScreen'
-import ReportDetailScreen from '../../screens/Report/ReportDetail/ReportDetailScreen'
-import SubmitIdeaScreen from '../../screens/Ideas/SubmitIdea/SubmitIdeaScreen'
-import { useTheme } from '../../context/ThemeContext'
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import MainTabs from "../MainTabs";
+import SubmitReportScreen from "../../screens/Report/SubmitReport/SubmitReportScreen";
+import ReportDetailScreen from "../../screens/Report/ReportDetail/ReportDetailScreen";
+import SubmitIdeaScreen from "../../screens/Ideas/SubmitIdea/SubmitIdeaScreen";
+import IdeaDetailScreen from "../../screens/Ideas/IdeaDetails/IdeaDetailScreen";
+import { useTheme } from "../../context/ThemeContext";
 
-const Stack = createNativeStackNavigator()
+const Stack = createNativeStackNavigator();
 
 export default function AppStack() {
-  const { theme } = useTheme()
+  const { theme } = useTheme();
   return (
     <Stack.Navigator
       screenOptions={{
@@ -22,8 +23,8 @@ export default function AppStack() {
         component={SubmitReportScreen}
         options={{
           headerShown: false,
-          title: 'Нова пријава',
-          headerBackTitle: '',
+          title: "Нова пријава",
+          headerBackTitle: "",
           headerStyle: { backgroundColor: theme.colors.surface },
           headerTintColor: theme.colors.text,
         }}
@@ -33,8 +34,8 @@ export default function AppStack() {
         component={ReportDetailScreen}
         options={{
           headerShown: false,
-          title: 'Детали',
-          headerBackTitle: '',
+          title: "Детали",
+          headerBackTitle: "",
           headerStyle: { backgroundColor: theme.colors.surface },
           headerTintColor: theme.colors.text,
         }}
@@ -44,12 +45,23 @@ export default function AppStack() {
         component={SubmitIdeaScreen}
         options={{
           headerShown: false,
-          title: 'Нова идеја',
-          headerBackTitle: '',
+          title: "Нова идеја",
+          headerBackTitle: "",
+          headerStyle: { backgroundColor: theme.colors.surface },
+          headerTintColor: theme.colors.text,
+        }}
+      />
+      <Stack.Screen
+        name="IdeaDetail"
+        component={IdeaDetailScreen}
+        options={{
+          headerShown: false,
+          title: "Детали",
+          headerBackTitle: "",
           headerStyle: { backgroundColor: theme.colors.surface },
           headerTintColor: theme.colors.text,
         }}
       />
     </Stack.Navigator>
-  )
+  );
 }

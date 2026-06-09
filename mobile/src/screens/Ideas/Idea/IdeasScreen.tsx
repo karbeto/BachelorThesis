@@ -87,7 +87,7 @@ export default function IdeasScreen() {
             subtitle="Предложете подобрување за вашето маало и гласајте за идеите на другите."
             btnText="Додај идеја"
             onPress={handleSubmitIdea}
-            styles={styles}
+            style={styles}
             theme={theme}
           />
         }
