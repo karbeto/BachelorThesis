@@ -10,7 +10,7 @@ class LocationSchema(BaseModel):
 
 class ReportCreate(BaseModel):
     title: str = Field(..., min_length=3, max_length=255)
-    description: str | None = None
+    description: str = Field(..., min_length=10, max_length=1000)
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
     address: str | None = None

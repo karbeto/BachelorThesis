@@ -222,7 +222,7 @@ async def create_notification(
 )
 async def submit_report(
     title: str = Form(..., min_length=3, max_length=255),
-    description: str | None = Form(None),
+    description: str = Form(..., min_length=10, max_length=1000),
     latitude: float = Form(..., ge=-90, le=90),
     longitude: float = Form(..., ge=-180, le=180),
     address: str | None = Form(None),

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { authTrigger } from './../utils/authTrigger'; 
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const TOKEN_KEY = 'civic_token';
@@ -27,6 +28,24 @@ client.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+client.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      try {
+        console.log('Token expired or unauthorized (401). Wiping session and logging out.');
+        
+        await SecureStore.deleteItemAsync(TOKEN_KEY);
+        
+        await authTrigger.logout();
+      } catch (evictError) {
+        console.error('Error during auto-logout eviction pipeline:', evictError);
+      }
+    }
     return Promise.reject(error);
   }
 );

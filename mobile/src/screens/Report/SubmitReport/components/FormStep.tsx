@@ -65,11 +65,12 @@ export const FormStep: React.FC<FormStepProps> = ({
 
         {/* Description Input */}
         <View style={styles.fieldWrap}>
-          <Text style={styles.label}>Опис (опционално)</Text>
+          <Text style={styles.label}>Опис*</Text>
           <View style={[
             styles.inputRow,
             styles.textAreaWrap,
             descFocused && styles.inputRowFocused,
+            description.error && styles.inputRowError,
           ]}>
             <TextInput
               style={[styles.input, styles.textArea]}
@@ -84,6 +85,7 @@ export const FormStep: React.FC<FormStepProps> = ({
               maxLength={1000}
             />
           </View>
+          {description.error && <Text style={styles.errorText}>{description.error}</Text>}
         </View>
 
         {/* AI Tagging Banner */}
@@ -94,7 +96,7 @@ export const FormStep: React.FC<FormStepProps> = ({
           padding: 12,
           backgroundColor: theme.colors.accent + '15',
           borderRadius: theme.borderRadius.medium,
-          marginBottom: 16, // Clean spacing allocation
+          marginBottom: 16,
         }}>
           <Ionicons name="sparkles" size={16} color={theme.colors.accent} style={{ marginTop: 1 }} />
           <Text style={{

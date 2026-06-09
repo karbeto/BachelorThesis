@@ -7,6 +7,7 @@ import React, {
 } from 'react'
 import { saveAuth, loadAuth, clearAuth } from './logic'
 import { AuthContextType, User } from './types'
+import { authTrigger } from '../../utils/authTrigger' 
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -44,6 +45,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null)
     setToken(null)
   }
+
+  useEffect(() => {
+    authTrigger.logout = logout;
+  }, [logout])
 
   return (
     <AuthContext.Provider value={{ user, token, isLoading, setAuth, logout }}>

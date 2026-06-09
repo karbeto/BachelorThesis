@@ -62,7 +62,7 @@ export default function MyReportsScreen() {
             subtitle="Пријавете урбан проблем во вашата околина и придонесете за подобар град."
             btnText="Поднеси пријава"
             onPress={handleSubmitPress}
-            styles={styles}
+            style={styles}
             theme={theme}
           />
         }
