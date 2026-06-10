@@ -131,14 +131,26 @@ npx expo start
 ### Backend
 
 ```env
-DATABASE_URL=
-SECRET_KEY=
-OPENAI_API_KEY=
+# ── Database ─────────────────────────────────────────────────────────────────
+DATABASE_URL=postgresql+asyncpg://postgres:PASSWORD@localhost:5432/civic_platform
 
-SMTP_HOST=
+# ── JWT Auth ─────────────────────────────────────────────────────────────────
+SECRET_KEY=your-super-secret-key-change-this-in-production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=120
+
+# ── OpenAI ───────────────────────────────────────────────────────────────────
+OPENAI_API_KEY=YOUR_KEY
+
+# ── SMTP (Brevo) ─────────────────────────────────────────────────────────────
+SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
-SMTP_USER=
-SMTP_PASSWORD=
+SMTP_USER=your@gmail.com
+SMTP_PASSWORD=xxxx-xxxx-xxxx-xxxx    # Brevo generated password
+
+# ── App ───────────────────────────────────────────────────────────────────────
+APP_NAME=Civic Platform API
+DEBUG=True                           # False in prod
 ```
 
 ### Mobile

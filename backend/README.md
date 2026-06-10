@@ -194,16 +194,16 @@ DATABASE_URL=postgresql+asyncpg://postgres:ВАШАТА_ЛОЗИНКА@localhost
 # ── JWT Auth ─────────────────────────────────────────────────────────────────
 SECRET_KEY=your-super-secret-key-256-bits-minimum
 ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
+ACCESS_TOKEN_EXPIRE_MINUTES=120
 
 # ── OpenAI ───────────────────────────────────────────────────────────────────
-OPENAI_API_KEY=sk-proj-...
+OPENAI_API_KEY=YOUR_KEY
 
 # ── SMTP (Gmail) ─────────────────────────────────────────────────────────────
-SMTP_HOST=smtp.gmail.com
+SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_USER=your@gmail.com
-SMTP_PASSWORD=xxxx-xxxx-xxxx-xxxx    # Gmail App Password (не главна лозинка!)
+SMTP_PASSWORD=xxxx-xxxx-xxxx-xxxx    # Brevo генерирана лозинка
 
 # ── App ───────────────────────────────────────────────────────────────────────
 APP_NAME=Civic Platform API
