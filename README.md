@@ -1,59 +1,76 @@
-# Civic Activism Platform
+# Платформа за граѓански активизам
 
-## Quick Overview
+## Преглед
 
-A full-stack civic engagement platform that connects citizens with municipal services through AI-assisted issue reporting and community-driven local innovation proposals.
+Платформата за граѓански активизам претставува дигитално решение кое ги поврзува граѓаните и општинските служби преку централизирана платформа за пријавување урбани проблеми и предлагање идеи за подобрување на локалната заедница.
 
-Citizens can report urban issues such as:
-- Road potholes
-- Illegal dumping
-- Damaged infrastructure
-- Street lighting problems
-- Water and sewage issues
-- Green space maintenance
 
-The platform automatically classifies reports using OpenAI GPT-4o and routes them to the appropriate municipal department.
+### Граѓаните можат да:
 
----
+- Пријават урбан проблем со фотографија и GPS локација
+- Следат статус на пријавите во реално време
+- Гласаат за постоечки пријави
+- Предлагаат идеи за подобрување на маалото
+- Гласаат за идеи на други граѓани
+- Добијат известувања за промени на статус
 
-## Key Features
 
-### Citizen Mobile Application
-- Create reports with photos and GPS location
-- AI-powered category detection
-- Track report status in real time
-- Vote on reports
-- Submit and vote for local improvement ideas
-- Offline report submission queue
-- Push notifications
+### Општините добиваат:
 
-### Municipality Web Dashboard
-- Dashboard with statistics and maps
-- Report management
-- Status updates
-- Category management
-- Email routing management
-- Idea review and moderation
+- Централизиран веб-панел
+- Автоматска категоризација на пријави
+- Статистики и визуелизации
+- Управување со статуси
+- Автоматско рутирање на пријавите
 
-### AI Integration
-- OpenAI GPT-4o classification
-- Image and text analysis
-- Automatic category selection
-- Automated department routing
 
 ---
 
-## Architecture
+## Главни функционалности
 
-### Backend
+### Пријавување урбани дефекти
+
+Поддржани категории:
+
+- Дупки на патот
+- Ѓубре и нечистотија
+- Осветлување
+- Нелегално паркирање
+- Оштетена инфраструктура
+- Зеленило
+- Водовод и канализација
+
+### AI класификација
+
+Системот користи OpenAI GPT-4o за автоматска анализа на описот и фотографијата и автоматски ја одредува категоријата на пријавата.
+
+### Детекција на дупликати
+
+Со помош на PostgreSQL и PostGIS системот открива дупликати во радиус од 50 метри и ги групира пријавите.
+
+### Идеи за моето маало
+
+Граѓаните можат да предлагаат идеи и да гласаат за нив.
+
+### Citizen Feedback Loop
+
+По означување на пријава како решена, корисникот може да ја оцени извршената работа со 1-5 ѕвезди.
+
+---
+
+## Технологии
+
+### Backendж
+- Python 3.11+
 - FastAPI
 - SQLAlchemy
 - Alembic
 - PostgreSQL
 - PostGIS
+- Pydantic v2
 - JWT Authentication
 
-### Web Panel
+### Веб-панел
 - React
 - Vite
 - TanStack Query
@@ -61,7 +78,7 @@ The platform automatically classifies reports using OpenAI GPT-4o and routes the
 - React Leaflet
 - Recharts
 
-### Mobile Application
+### Мобилна апликација
 - React Native
 - Expo
 - React Navigation
@@ -69,14 +86,14 @@ The platform automatically classifies reports using OpenAI GPT-4o and routes the
 - Expo Location
 - Expo Secure Store
 
-### External Services
+### Надворешни сервиси
 - OpenAI GPT-4o
 - Brevo SMTP
 - OpenStreetMap
 
 ---
 
-## Project Structure
+## Структура
 
 ```text
 thesis-app/
@@ -87,7 +104,7 @@ thesis-app/
 
 ---
 
-## Installation
+## Инсталација
 
 ### Backend
 
@@ -106,7 +123,7 @@ python -m seed
 uvicorn app.main:app --reload --host 0.0.0.0
 ```
 
-### Web Panel
+### Веб-панел
 
 ```bash
 cd web-panel
@@ -115,7 +132,7 @@ npm install
 npm run dev
 ```
 
-### Mobile App
+### Мобилна апликација
 
 ```bash
 cd mobile
@@ -153,7 +170,7 @@ APP_NAME=Civic Platform API
 DEBUG=True                           # False in prod
 ```
 
-### Mobile
+### Мобилна апликација
 
 ```env
 EXPO_PUBLIC_API_URL=http://YOUR_LOCAL_IP:8000
@@ -161,48 +178,47 @@ EXPO_PUBLIC_API_URL=http://YOUR_LOCAL_IP:8000
 
 ---
 
-## Main Functional Flow
+## Главен тек на процесот
 
-1. Citizen submits a report.
-2. GPS location is captured.
-3. Duplicate detection is performed using PostGIS.
-4. GPT-4o classifies the issue.
-5. Appropriate department is selected.
-6. Email notification is sent.
-7. Municipality processes the report.
-8. Citizen receives updates.
-9. Citizen can rate the resolution.
-
----
-
-## Database
-
-Main entities:
-
-- Users
-- Municipalities
-- Cities
-- Categories
-- Reports
-- Report Images
-- Report Votes
-- Report Ratings
-- Ideas
-- Idea Votes
-- Notifications
+1. Граѓанинот поднесува пријава.
+2. Се добива GPS локацијата.
+3. Се врши детекција на дупликати со помош на PostGIS.
+4. GPT-4o автоматски го класифицира проблемот.
+5. Се одредува надлежната служба.
+6. Се испраќа email известување.
+7. Општината ја обработува пријавата.
+8. Граѓанинот добива известувања за промените.
+9. Граѓанинот може да го оцени решението.
 
 ---
 
-## Author
+## База на податоци
 
-**Kristijan Karbevski**
+Главни ентитети:
 
-Bachelor Thesis Project  
-Brainster Next IT Faculty  
-Software Engineering and Innovation
+- Корисници
+- Општини
+- Градови
+- Категории
+- Пријави
+- Слики од пријави
+- Гласови за пријави
+- Оценки за пријави
+- Идеи
+- Гласови за идеи
+- Известувања
 
 ---
 
-## License
+## Автор
 
-This project was developed as part of a bachelor's thesis and is intended for educational and demonstration purposes.
+**Кристијан Карбевски**
+
+Дипломска работа  
+Brainster Next IT Факултет  
+Софтверско инженерство и иновации
+
+---
+
+## Лиценца
+* Овој проект е развиен како дел од дипломска работа и е наменет за едукативни и демонстрациски цели.
