@@ -1,6 +1,6 @@
 # Civic Activism Platform
 
-## Overview
+## Quick Overview
 
 A full-stack civic engagement platform that connects citizens with municipal services through AI-assisted issue reporting and community-driven local innovation proposals.
 

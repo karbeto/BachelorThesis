@@ -2,6 +2,7 @@
 Database Seeder for Civic Platform — Veles and Skopje Pilot
 Run: python -m app.seed
 """
+
 import asyncio
 from sqlalchemy import select
 from app.database import AsyncSessionLocal, engine
@@ -41,24 +42,66 @@ MUNICIPALITIES = [
 ]
 
 CATEGORIES = [
-    {"name": "Дупки на патот", "description": "Оштетени коловози, дупки, искршен асфалт"},
-    {"name": "Ѓубре и нечистотија", "description": "Нелегални депонии, ѓубре на јавни површини"},
+    {
+        "name": "Дупки на патот",
+        "description": "Оштетени коловози, дупки, искршен асфалт",
+    },
+    {
+        "name": "Ѓубре и нечистотија",
+        "description": "Нелегални депонии, ѓубре на јавни површини",
+    },
     {"name": "Осветлување", "description": "Прегорени или неисправни улични светилки"},
-    {"name": "Нелегално паркирање", "description": "Возила паркирани на тротоари, пешачки премини, забранети зони"},
-    {"name": "Оштетена инфраструктура", "description": "Скршени клупи, огради, патни знаци, тротоари"},
-    {"name": "Зеленило", "description": "Непокосена трева, паднати дрвја, занемарени паркови"},
-    {"name": "Водовод и канализација", "description": "Скршени цевки, поплави, непријатни миризби"},
+    {
+        "name": "Нелегално паркирање",
+        "description": "Возила паркирани на тротоари, пешачки премини, забранети зони",
+    },
+    {
+        "name": "Оштетена инфраструктура",
+        "description": "Скршени клупи, огради, патни знаци, тротоари",
+    },
+    {
+        "name": "Зеленило",
+        "description": "Непокосена трева, паднати дрвја, занемарени паркови",
+    },
+    {
+        "name": "Водовод и канализација",
+        "description": "Скршени цевки, поплави, непријатни миризби",
+    },
 ]
 
-
-ROUTING = [{"category": "Дупки на патот", "email": "komunalna@veles.gov.mk", "dept": "ЈП Комуналец"}] 
-
+ROUTING = [
+    {
+        "category": "Дупки на патот",
+        "email": "komunalna@veles.gov.mk",
+        "dept": "ЈП Комуналец",
+    }
+]
 
 USERS = [
-    {"email": "admin@app.mk", "password_hash": "$2b$12$04T1/MnurQnvAGA9N2QbmeBXJrikg8U/RCB7u3w5A6nySBi0EAMBy", "full_name": "Супер Администратор", "role": UserRole.superadmin},
-    {"email": "admin@veles.mk", "password_hash": "$2b$12$04T1/MnurQnvAGA9N2QbmeBXJrikg8U/RCB7u3w5A6nySBi0EAMBy", "full_name": "Кристијан Карбевски", "role": UserRole.municipality_admin},
-    {"email": "admin@skopje.mk", "password_hash": "$2b$12$04T1/MnurQnvAGA9N2QbmeBXJrikg8U/RCB7u3w5A6nySBi0EAMBy", "full_name": "Владимир Цунгаровски", "role": UserRole.municipality_admin},
-    {"email": "graganin@test.mk", "password_raw": "Test123!", "full_name": "Тест Граѓанин", "role": UserRole.citizen},
+    {
+        "email": "admin@app.mk",
+        "password_raw": "admin123",
+        "full_name": "Супер Администратор",
+        "role": UserRole.superadmin,
+    },
+    {
+        "email": "admin@veles.mk",
+        "password_raw": "admin123",
+        "full_name": "Кристијан Карбевски",
+        "role": UserRole.municipality_admin,
+    },
+    {
+        "email": "admin@skopje.mk",
+        "password_raw": "admin123",
+        "full_name": "Владимир Цунгаровски",
+        "role": UserRole.municipality_admin,
+    },
+    {
+        "email": "graganin@test.mk",
+        "password_raw": "Test123!",
+        "full_name": "Тест Граѓанин",
+        "role": UserRole.citizen,
+    },
 ]
 
 MUNICIPALITY_EMPLOYEES = [
@@ -66,9 +109,10 @@ MUNICIPALITY_EMPLOYEES = [
     {"user_id": 3, "municipality_id": 2, "department": "Општинска администрација"},
 ]
 
+
 async def seed():
     async with AsyncSessionLocal() as db:
-        print("\n🌱 Starting seed...")
+        print("\n🌱 Starting full database seed...")
 
         # 1. Cities
         city_map = {}
@@ -86,7 +130,9 @@ async def seed():
         mun_map = {}
         for m in MUNICIPALITIES:
             target_city = city_map.get(m["city"])
-            existing = await db.execute(select(Municipality).where(Municipality.name == m["name"]))
+            existing = await db.execute(
+                select(Municipality).where(Municipality.name == m["name"])
+            )
             mun = existing.scalar_one_or_none()
             if not mun:
                 mun = Municipality(name=m["name"], city_id=target_city.id)
@@ -95,13 +141,81 @@ async def seed():
             mun_map[m["name"]] = mun
             print(f"   ✓ Municipality: {mun.name}")
 
-        # 3. Categories, Users... (продолжи ја логиката слично како погоре)
+        # 3. Categories
+        cat_map = {}
+        for c in CATEGORIES:
+            existing = await db.execute(
+                select(Category).where(Category.name == c["name"])
+            )
+            cat = existing.scalar_one_or_none()
+            if not cat:
+                cat = Category(**c)
+                db.add(cat)
+                await db.flush()
+            cat_map[cat.name] = cat
+            print(f"   ✓ Category: {cat.name}")
+
+        # 4. Routing
+        for r in ROUTING:
+            cat = cat_map.get(r["category"])
+            mun = mun_map.get("Veles")
+            if cat and mun:
+                existing = await db.execute(
+                    select(MunicipalityCategoryRouting).where(
+                        MunicipalityCategoryRouting.category_id == cat.id,
+                        MunicipalityCategoryRouting.municipality_id == mun.id,
+                    )
+                )
+                if not existing.scalar_one_or_none():
+                    routing = MunicipalityCategoryRouting(
+                        category_id=cat.id,
+                        municipality_id=mun.id,
+                        routing_email=r["email"],
+                        department_name=r["dept"],
+                    )
+                    db.add(routing)
+                    print(f"   ✓ Routing: {r['category']} -> {mun.name}")
+
+        # 5. Users
+        for u in USERS:
+            existing = await db.execute(select(User).where(User.email == u["email"]))
+            user = existing.scalar_one_or_none()
+            if not user:
+                final_password = hash_password(u["password_raw"])
+                user = User(
+                    email=u["email"],
+                    password=final_password,
+                    full_name=u["full_name"],
+                    role=u["role"],
+                    is_active=True,
+                )
+                
+                db.add(user)
+                await db.flush()
+                print(f"   ✓ User: {user.email}")
+
+        # 6. Employees
+        for e in MUNICIPALITY_EMPLOYEES:
+            existing = await db.execute(
+                select(MunicipalityEmployee).where(
+                    MunicipalityEmployee.user_id == e["user_id"],
+                    MunicipalityEmployee.municipality_id == e["municipality_id"],
+                )
+            )
+            if not existing.scalar_one_or_none():
+                db.add(MunicipalityEmployee(**e))
+                print(f"   ✓ Employee linked: user {e['user_id']}")
+
         await db.commit()
-        print("✅ Success!")
+        print("\n✅ Database perfectly synced!")
+
 
 async def main():
-    try: await seed()
-    finally: await engine.dispose()
+    try:
+        await seed()
+    finally:
+        await engine.dispose()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
