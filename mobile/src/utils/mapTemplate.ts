@@ -6,7 +6,6 @@ interface Coordinates {
 }
 
 export function generateMapHtml(reports: any[], userLocation?: Coordinates | null): string {
-  // Defensive fallback routing for map center focus
   let centerLat = 41.715;
   let centerLng = 21.773;
 

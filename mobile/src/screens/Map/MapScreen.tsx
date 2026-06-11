@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +23,8 @@ export default function MapScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
 
+  const webViewRef = useRef<WebView>(null);
+
   const {
     reports,
     userLocation,
@@ -38,16 +40,26 @@ export default function MapScreen() {
     handleFilterChange,
   } = useMapLogic();
 
-  // Re-compiles HTML map source when markers change OR user location shifts coordinates
+  useEffect(() => {
+    if (userLocation && webViewRef.current) {
+      const message = JSON.stringify({
+        type: "UPDATE_LOCATION",
+        lat: userLocation.latitude,
+        lng: userLocation.longitude,
+      });
+      webViewRef.current.postMessage(message);
+    }
+  }, [userLocation]);
+
   const mapHtml = useMemo(() => {
     return generateMapHtml(reports, userLocation);
   }, [reports, userLocation]);
 
   return (
     <View style={styles.container}>
-      {/* WebView Container Layer */}
       <View style={styles.map}>
         <WebView
+          ref={webViewRef}
           originWhitelist={["*"]}
           source={{ html: mapHtml }}
           onMessage={(event) => handleWebViewMessage(event.nativeEvent.data)}
@@ -63,7 +75,11 @@ export default function MapScreen() {
           <Ionicons name="map" size={16} color={theme.colors.accent} />
           <Text style={styles.titleText}>Пријави во областа</Text>
           {isLoading ? (
-            <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginLeft: 6 }} />
+            <ActivityIndicator
+              size="small"
+              color={theme.colors.accent}
+              style={{ marginLeft: 6 }}
+            />
           ) : (
             <View style={styles.countPill}>
               <Text style={styles.countText}>{reports.length}</Text>
@@ -134,7 +150,6 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Bottom Floating Display Overlays (Legend OR Selected Detail Preview Card) */}
       {!selectedReport ? (
         <MapLegend styles={styles} />
       ) : (
@@ -147,7 +162,6 @@ export default function MapScreen() {
         />
       )}
 
-      {/* Action Submission Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => {

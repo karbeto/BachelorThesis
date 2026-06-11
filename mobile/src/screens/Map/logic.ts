@@ -1,29 +1,30 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useNavigation } from '@react-navigation/native';
-import { getReports } from '../../api/reports';
+import { useState, useRef, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigation } from "@react-navigation/native";
+import * as Location from "expo-location";
+import { getReports } from "../../api/reports";
 
 export const STATUS_COLORS: Record<string, string> = {
-  submitted: '#F59E0B',
-  in_progress: '#38BDF8',
-  resolved: '#22C55E',
-  rejected: '#EF4444',
+  submitted: "#F59E0B",
+  in_progress: "#38BDF8",
+  resolved: "#22C55E",
+  rejected: "#EF4444",
 };
 
 export const STATUS_MK: Record<string, string> = {
-  submitted: 'Поднесено',
-  in_progress: 'Се решава',
-  resolved: 'Решено',
-  rejected: 'Одбиено',
+  submitted: "Поднесено",
+  in_progress: "Се решава",
+  resolved: "Решено",
+  rejected: "Одбиено",
 };
 
 export const CATEGORY_ICONS: Record<string, string> = {
-  default: '📍',
-  'Дупки на патот': '🕳️',
-  'Ѓубре': '🗑️',
-  'Осветлување': '💡',
-  'Паркирање': '🚗',
-  'Оштетена инфраструктура': '🔧',
+  default: "📍",
+  "Дупки на патот": "🕳️",
+  Ѓубре: "🗑️",
+  Осветлување: "💡",
+  Паркирање: "🚗",
+  "Оштетена инфраструктура": "🔧",
 };
 
 export interface DeviceLocation {
@@ -33,46 +34,57 @@ export interface DeviceLocation {
 
 export function useMapLogic() {
   const navigation = useNavigation<any>();
-  const mapRef = useRef<any>(null);
-
-  // Core Map UI States
   const [selectedReport, setSelectedReport] = useState<any>(null);
-  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>("");
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [userLocation, setUserLocation] = useState<DeviceLocation | null>(null);
 
-  // 1. Fetch Geolocation Data on Load
+  // 1. Live Geolocation Tracking (Watch Position)
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
+    let locationSubscription: Location.LocationSubscription;
+
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.warn("Location permission denied");
+        return;
+      }
+
+      locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          distanceInterval: 100, // Ажурирај на секои 100 метри
+        },
+        (location) => {
           setUserLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
           });
         },
-        (error) => {
-          console.warn('Map tracking location fetch skipped/unresolved:', error);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
       );
-    }
+    })();
+
+    return () => locationSubscription?.remove();
   }, []);
 
   // 2. Fetch Active Map Report Collection
-  const { data: reports, isLoading, refetch } = useQuery({
-    queryKey: ['reports-map', filterStatus],
+  const { data: reports, isLoading } = useQuery({
+    queryKey: ["reports-map", filterStatus, userLocation],
     queryFn: () =>
       getReports({
         limit: 100,
-        ...(filterStatus && { status: filterStatus }),
+        status: filterStatus || undefined,
+        lat: userLocation?.latitude,
+        lng: userLocation?.longitude,
       }),
   });
 
   // 3. Defensive Array Computations
   const validReports = useMemo(() => {
     if (!Array.isArray(reports)) return [];
-    return reports.filter((r: any) => r.latitude != null && r.longitude != null);
+    return reports.filter(
+      (r: any) => r.latitude != null && r.longitude != null,
+    );
   }, [reports]);
 
   // 4. Inter-process Communication Lookup (Bridge Resolver)
@@ -80,14 +92,18 @@ export function useMapLogic() {
     try {
       const data = JSON.parse(payloadString);
       if (data?.id) {
-        // Resolve target report details locally from memory cache array
-        const matchedReport = validReports.find((r: any) => String(r.id) === String(data.id));
+        const matchedReport = validReports.find(
+          (r: any) => String(r.id) === String(data.id),
+        );
         if (matchedReport) {
           setSelectedReport(matchedReport);
         }
       }
     } catch (e) {
-      console.error('Failed processing Webview Map interaction layer message:', e);
+      console.error(
+        "Failed processing Webview Map interaction layer message:",
+        e,
+      );
     }
   };
 
@@ -98,13 +114,13 @@ export function useMapLogic() {
 
   const handleCardPress = () => {
     if (selectedReport) {
-      navigation.navigate('ReportDetail', { id: selectedReport.id });
+      navigation.navigate("ReportDetail", { id: selectedReport.id });
       setSelectedReport(null);
     }
   };
 
   const handleSubmitPress = () => {
-    navigation.navigate('SubmitReport');
+    navigation.navigate("SubmitReport");
   };
 
   const handleFilterChange = (status: string) => {
@@ -113,11 +129,9 @@ export function useMapLogic() {
   };
 
   return {
-    mapRef,
     reports: validReports,
     userLocation,
     isLoading,
-    refetch,
     selectedReport,
     filterStatus,
     showFilters,
